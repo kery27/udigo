@@ -349,11 +349,17 @@
         render(activeData);
     }
     function closeModal() { document.getElementById('modal').style.display = 'none'; }
+    // [수정] 구역 선택 함수
     function selectZone(dataId, index) {
+        // 1. 기존의 모든 선택 상태를 초기화하고 딱 하나만 선택하도록 보장
         activeData = imageList.find(d => d.id === dataId);
         activeZone = activeData.zones[index];
+
+        // 2. 화면 이동
         activeData.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        render(activeData);
+
+        // 3. 모든 이미지의 렌더링을 갱신 (선택된 것 하나만 강조됨)
+        imageList.forEach(data => render(data));
     }
     function deleteZone() {
         activeData.zones = activeData.zones.filter(z => z !== activeZone);
@@ -361,14 +367,24 @@
         closeModal();
         render(activeData);
     }
+    // [수정] 통합 검색 함수
     function integratedSearch() {
         const query = document.getElementById('searchBox').value.trim();
         const display = document.getElementById('searchResultDisplay');
+
+        // 검색 시에는 '선택된 구역'을 해제하여 난잡함을 방지
+        activeZone = null;
+        imageList.forEach(data => render(data));
+
         let results = [];
         imageList.forEach(data => {
             data.zones.forEach((z, idx) => {
                 if (z.items.some(i => i.name.includes(query))) {
-                    results.push(`<div onclick="selectZone(${data.id}, ${idx})" style="display:inline-block; margin:5px; padding:8px 15px; background:#e3f2fd; border:1px solid #2196f3; border-radius:20px; cursor:pointer; font-size:0.9em; transition:0.2s;">${z.name}</div>`);
+                    results.push(`
+                        <div onclick="selectZone(${data.id}, ${idx})"
+                             style="display:inline-block; margin:5px; padding:8px 15px; background:#e3f2fd; border:1px solid #2196f3; border-radius:20px; cursor:pointer; font-size:0.9em;">
+                             ${z.name}
+                        </div>`);
                 }
             });
         });
