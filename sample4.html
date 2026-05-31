@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>매장 보관 공간 관리 시스템</title>
     <style>
-        :root { --primary: #2196f3; --danger: #f44336; --bg: #f4f7f6; }
+        :root { --primary: #2196f3; --danger: #f44336; --success: #2E7D32; --bg: #f4f7f6; }
         body { font-family: 'Pretendard', sans-serif; padding: 15px; background: var(--bg); }
         .search-bar { background: white; padding: 15px; margin-bottom: 20px; border-radius: 12px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .image-section { background: white; padding: 20px; margin-bottom: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
@@ -13,13 +13,19 @@
         .zone-item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; }
         .zone-item:hover { background: #f9f9f9; }
         .active { background: #e3f2fd !important; border-radius: 6px; font-weight: bold; }
-        #modal, #guideModal {
+
+        /* ⚙️ 모달 공통 스타일 */
+        #modal, #guideModal, #settingsModal {
             display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 90%; max-width: 500px; max-height: 80vh; background: white; padding: 20px;
             border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 1000; overflow-y: auto; box-sizing: border-box;
         }
+        #settingsModal { z-index: 1001; max-width: 420px; }
+
         .btn-ghost { background: none; border: none; cursor: pointer; font-size: 14px; }
         #emptyGuide { text-align: center; color: #888; padding: 50px 0; display: none; }
+
+        .btn-settings-item { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.95em; text-align: center; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -37,9 +43,9 @@
     <div style="margin-bottom: 20px;">
         <h3 style="margin: 0 0 8px 0; font-size: 1.05em; color: #333;">📍 1. 공간 지정 및 크기 변경</h3>
         <ul style="margin: 0; padding-left: 20px; color: #555; font-size: 0.9em;">
-            <li><b>구역 만들기:</b> 사진 위를 <b>드래그</b>하면 구역이 생성됩니다.</li>
-            <li><b>구역 이동:</b> 생성된 구역의 <b>가운데를 잡고 드래그</b>하면 자유롭게 이동합니다.</li>
-            <li><b>크기 조절:</b> 구역 선택 시 나타나는 <b>모서리의 흰색 점</b>을 당겨서 크기를 조절하세요.</li>
+            <li><b>구역 만들기:</b> 사진 위를 마우스나 손가락으로 <b>드래그</b>하면 네모난 구역이 생성됩니다.</li>
+            <li><b>구역 이동:</b> 생성된 구역의 <b>가운데 빈 곳을 잡고 드래그</b>하면 자유롭게 이동합니다.</li>
+            <li><b>크기 조절:</b> 구역 선택 시 나타나는 <b>네 모서리의 흰색 점</b>을 당겨서 크기를 조절하세요.</li>
         </ul>
     </div>
 
@@ -54,15 +60,16 @@
     <div style="margin-bottom: 20px;">
         <h3 style="margin: 0 0 8px 0; font-size: 1.05em; color: #333;">🔍 3. 위치 찾기 (스마트 검색)</h3>
         <ul style="margin: 0; padding-left: 20px; color: #555; font-size: 0.9em;">
+            <li>상단 검색창에 '빨대' 등을 입력하면 해당 물건이 있는 구역들이 버튼으로 뜹니다.</li>
             <li><b>검색된 구역 버튼을 클릭</b>하면 해당 위치로 이동하며, 정중앙에 <b>빨간 화살표(▼)</b>가 꽂힙니다.</li>
         </ul>
     </div>
 
     <div style="margin-bottom: 25px;">
-        <h3 style="margin: 0 0 8px 0; font-size: 1.05em; color: #2E7D32;">🔄 4. 품목 이동 및 안전 삭제</h3>
+        <h3 style="margin: 0 0 8px 0; font-size: 1.05em; color: var(--success);">🔄 4. 품목 이동 및 안전 삭제</h3>
         <ul style="margin: 0; padding-left: 20px; color: #555; font-size: 0.9em;">
-            <li><b>구역 간 이동:</b> 구역에 표시된 품목 글자를 잡고 <b>다른 구역으로 드래그</b>하면 바로 이동합니다.</li>
-            <li><b>안전한 삭제:</b> 품목을 잡고 <b>구역이 없는 빈 허공으로 멀리 떨어뜨리면 </b> 최종 삭제 여부를 묻는 팝업창이 작동합니다.</li>
+            <li><b>구역 간 이동:</b> 말풍선의 품목 글자를 잡고 <b>다른 구역으로 드래그</b>하면 바로 이동합니다.</li>
+            <li><b>안전한 삭제:</b> 품목을 잡고 <b>구역이 없는 빈 허공으로 멀리 떨어뜨렸을 때만</b> 최종 삭제 여부를 묻는 팝업창이 작동합니다.</li>
         </ul>
     </div>
 
@@ -78,7 +85,7 @@
                oninput="integratedSearch()" onfocus="this.select()"
                style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; min-width: 0;">
         <button onclick="toggleDetails()"
-                style="flex-shrink: 0; padding: 8px 12px; cursor: pointer; border-radius: 20px; border: 1px solid #2E7D32; background: white; color: #2E7D32; white-space: nowrap;">
+                style="flex-shrink: 0; padding: 8px 12px; cursor: pointer; border-radius: 20px; border: 1px solid var(--success); background: white; color: var(--success); white-space: nowrap;">
             상세 표시: <span id="toggleText">ON</span>
         </button>
     </div>
@@ -92,7 +99,17 @@
 <div id="emptyGuide">등록된 사진이 없습니다. 아래 버튼을 눌러 매장 사진을 추가해 주세요!</div>
 <div id="canvasList"></div>
 
-<button onclick="document.getElementById('fileInput').click()" style="padding:15px; width:100%; border:none; border-radius:12px; background:var(--primary); color:white; font-size:16px; font-weight:bold; cursor:pointer;">📷 사진 추가하기</button>
+<div style="display: flex; gap: 10px; margin-top: 15px; align-items: stretch;">
+    <button onclick="document.getElementById('fileInput').click()"
+            style="flex: 1; padding:15px; border:none; border-radius:12px; background:var(--primary); color:white; font-size:16px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(33, 150, 243, 0.2);">
+        📷 사진 추가하기
+    </button>
+    <button onclick="openSettingsModal()"
+            style="width: 50px; flex-shrink: 0; border:none; border-radius:12px; background:#78909c; color:white; font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 10px rgba(120, 144, 156, 0.2);">
+        ⚙️
+    </button>
+</div>
+
 <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="addImage(this)">
 
 <div id="modal">
@@ -108,6 +125,38 @@
     <div style="margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
         <input type="text" id="newItemInput" placeholder="새 품목 이름 입력" style="width:70%; padding:5px;">
         <button onclick="addNewItem()" style="padding:5px 10px; cursor:pointer;">추가</button>
+    </div>
+</div>
+
+<div id="settingsModal">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+        <h3 style="margin:0; font-size:1.2em; color:#37474f;">⚙️ 시스템 설정 및 관리</h3>
+        <button class="btn-ghost" onclick="closeSettingsModal()" style="color:#555; font-size: 16px; font-weight: bold;">닫기</button>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <p style="margin: 0 0 10px 0; font-size: 0.9em; color: #666; line-height: 1.4;">
+            💡 브라우저 청소나 폰 교체 시 데이터가 사라질 수 있습니다. 정기적으로 현재 상태를 백업 파일로 보관하세요.
+        </p>
+
+        <button class="btn-settings-item" onclick="exportSystemData()"
+                style="background: white; border: 1px solid var(--primary); color: var(--primary);">
+            📥 현재 데이터 백업 (파일 다운로드)
+        </button>
+        <button class="btn-settings-item" onclick="document.getElementById('backupFileInput').click()"
+                style="background: white; border: 1px solid var(--success); color: var(--success);">
+            📤 백업 파일로 복구하기
+        </button>
+        <input type="file" id="backupFileInput" accept=".json" style="display:none" onchange="importSystemData(this)">
+    </div>
+
+    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #ddd;">
+        <span style="font-size: 0.85em; color: #999; font-weight: bold; display: block; margin-bottom: 5px;">🔧 추후 업데이트 예정 기능</span>
+        <div style="font-size: 0.85em; color: #ccc; padding: 10px; border: 1px dashed #eee; border-radius: 6px; background: #fafafa;">
+            • 글자 크기 기본값 설정<br>
+            • 매장별 카테고리 필터 관리<br>
+            • 다크 모드 (어두운 화면) 지원
+        </div>
     </div>
 </div>
 
@@ -132,8 +181,58 @@
 
     let showSearchArrow = false;
 
-    // 💡 [업데이트] 샘플 내부 텍스트 크기를 모바일에 맞게 16px 이상으로 키우고 위치 조정
     const DUMMY_IMAGE_DATA = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450"><rect width="800" height="450" fill="%23eceff1"/><text x="400" y="55" font-family="Arial" font-size="24" font-weight="bold" fill="%23546e7a" text-anchor="middle">☕ 매장 내부 창고 / 진열대 (예시 화면)</text><text x="400" y="95" font-family="Arial" font-size="16" fill="%2378909c" text-anchor="middle">실제 매장 사진을 올리기 전 자유롭게 기능을 테스트해보세요!</text><rect x="50" y="140" width="700" height="30" fill="%23b0bec5"/><rect x="70" y="180" width="120" height="110" fill="none" stroke="%2390a4ae" stroke-width="3" stroke-dasharray="5,5"/><text x="130" y="240" font-family="Arial" font-size="16" fill="%2390a4ae" text-anchor="middle">미지정 공간</text><rect x="240" y="180" width="320" height="110" fill="none" stroke="%2390a4ae" stroke-width="3" stroke-dasharray="5,5"/><rect x="50" y="290" width="700" height="30" fill="%23b0bec5"/><rect x="100" y="330" width="600" height="100" fill="none" stroke="%2390a4ae" stroke-width="3" stroke-dasharray="5,5"/></svg>`;
+
+    function openSettingsModal() { document.getElementById('settingsModal').style.display = 'block'; }
+    function closeSettingsModal() { document.getElementById('settingsModal').style.display = 'none'; }
+
+    function exportSystemData() {
+        const savedData = localStorage.getItem('savedSystemData') || "[]";
+        const savedItems = localStorage.getItem('baseItems') || "[]";
+
+        const packageData = {
+            note: "매장 보관 공간 관리 시스템 백업 파일",
+            savedSystemData: JSON.parse(savedData),
+            baseItems: JSON.parse(savedItems)
+        };
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(packageData));
+        const downloadLink = document.createElement('a');
+        downloadLink.setAttribute("href", dataStr);
+
+        const date = new Date();
+        const dateStr = date.getFullYear() + String(date.getMonth() + 1).padStart(2, '0') + String(date.getDate()).padStart(2, '0');
+        downloadLink.setAttribute("download", `매장위치지도_백업_${dateStr}.json`);
+
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        downloadLink.remove();
+    }
+
+    function importSystemData(input) {
+        if (!input.files[0]) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const imported = JSON.parse(e.target.result);
+                if (imported.savedSystemData && imported.baseItems) {
+                    if (confirm("백업 파일을 불러오시겠습니까? 기존에 등록되어 있던 현재 내역은 모두 덮어써집니다.")) {
+                        localStorage.setItem('savedSystemData', JSON.stringify(imported.savedSystemData));
+                        localStorage.setItem('baseItems', JSON.stringify(imported.baseItems));
+                        alert("성공적으로 복구되었습니다! 시스템을 다시 시작합니다.");
+                        location.reload();
+                    }
+                } else {
+                    alert("올바른 백업 파일(.json) 형식이 아닙니다.");
+                }
+            } catch (err) {
+                alert("파일을 읽는 중 에러가 발생했습니다. 정상적인 백업 파일인지 확인해주세요.");
+            }
+        };
+        reader.readAsText(input.files[0]);
+        input.value = "";
+    }
 
     function saveData() {
         const dataToSave = imageList.map(data => ({
@@ -144,7 +243,7 @@
         try {
             localStorage.setItem('savedSystemData', JSON.stringify(dataToSave));
         } catch (e) {
-            alert("저장 용량이 꽉 찼습니다! 사진을 삭제해주세요.");
+            alert("저장 용량이 꽉 찼습니다! 사용하지 않는 사진을 삭제해주시거나 백업 후 정리해주세요.");
         }
         localStorage.setItem('baseItems', JSON.stringify(baseItems));
     }
@@ -503,8 +602,6 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-        const searchQuery = document.getElementById('searchBox').value.trim();
-
         zones.forEach((z) => {
             ctx.fillStyle = (z === activeZone) ? 'rgba(255, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.6)';
             ctx.fillRect(z.x, z.y, z.w, z.h);
@@ -534,8 +631,6 @@
                 });
             }
 
-            // 💡 [업데이트] 상세 표시(showDetails) 토글 스위치가 검색 상태보다 항상 우선하도록 결합조건 수정
-            const isSearchMatch = searchQuery !== "" && z.items.some(i => i.name.includes(searchQuery));
             const shouldShowBubble = showDetails && (z.items.length > 0);
 
             if (shouldShowBubble) {
