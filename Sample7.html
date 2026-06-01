@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>매장 보관 공간 관리 시스템</title>
+    <style>
+        :root { --primary: #2196f3; --danger: #f44336; --success: #2E7D32; --bg: #f4f7f6; --orange: #e65100; }
+        body { font-family: 'Pretendard', sans-serif; padding: 15px; background: var(--bg); margin-bottom: 120px; }
+        
+        /* 🔍 오직 검색만 남긴 극단적 미니멀 상단바 */
+        .search-bar { background: white; padding: 12px; margin-bottom: 15px; border-radius: 12px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        
+        .image-section { background: white; padding: 20px; margin-bottom: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); position: relative; }
+        canvas { border: 2px solid #ddd; border-radius: 8px; max-width: 100%; display: block; margin: 10px auto; cursor: pointer; transition: border-color 0.3s; }
+        .zone-item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; }
+        .zone-item:hover { background: #f9f9f9; }
+        .active { background: #e3f2fd !important; border-radius: 6px; font-weight: bold; }
+        
+        /* 🕹️ 우측 하단 스마트 리모컨 (말풍선 상시 노출 + 편집 시 위로 팝업 구조) */
+        .floating-remote { position: fixed; bottom: 25px; right: 20px; display: flex; flex-direction: row; gap: 10px; z-index: 1000; align-items: flex-end; }
+        .fab-btn { width: 48px; height: 48px; border-radius: 50%; border: none; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
+        .fab-btn:active { transform: scale(0.92); }
+        #mainModeBtn { width: 56px; height: 56px; font-size: 20px; background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(33, 150, 243, 0.4); flex-shrink: 0; }
+
+        /* 모달 스타일 */
+        #modal, #guideModal, #settingsModal {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 90%; max-width: 500px; max-height: 85vh; background: white; padding: 20px;
+            border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 1010; overflow-y: auto; box-sizing: border-box;
+        }
+        #settingsModal { z-index: 1020; max-width: 420px; }
+        
+        .btn-ghost { background: none; border: none; cursor: pointer; font-size: 14px; }
+        #emptyGuide { text-align: center; color: #888; padding: 50px 0; display: none; }
+        .btn-settings-item { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.95em; text-align: center; box-sizing: border-box; }
+
+        /* 🎤 음성인식 애니메이션 */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(33, 150, 243, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(33, 150, 243, 0); }
+        }
+        .listening { animation: pulse 1.2s infinite; background: #e3f2fd !important; border-color: var(--primary) !important; }
+    </style>
+</head>
+<body>
+
+<div id="guideModal" style="display:block; line-height: 1.6;">
+    <h2 style="text-align: center; color: var(--primary); margin-top: 0; margin-bottom: 15px; font-size: 1.3em;">
+        🏬 1분 만에 끝내는 매장 지도 만들기
+    </h2>
+    <p style="font-size: 0.95em; color: #333; margin-bottom: 15px; text-align: center; font-weight: bold;">
+        환영합니다! 아래 3가지만 알면 매장 비품실을 한눈에 관리할 수 있습니다.
+    </p>
+    
+    <div style="background: #f0f4f8; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+        <ul style="padding-left: 20px; margin: 0; font-size: 0.95em; color: #444; line-height: 1.8;">
+            <li><b>📷 사진 등록:</b> 매장 창고나 비품실 사진을 먼저 올려주세요.</li>
+            <li><b>✏️ 구역 그리기:</b> 우측 하단 <b>[🔒조회]</b>를 눌러 <b>[✏️편집중]</b>으로 바꾼 뒤, 사진 위를 <b>대각선으로 슥 드래그</b>하면 새 구역이 생깁니다.</li>
+            <li><b>🔍 비품 검색:</b> 상단 검색창이나 <b>🎤 마이크 버튼</b>으로 물건 위치를 쉽게 찾으세요.</li>
+        </ul>
+    </div>
+
+    <div id="guideMoreBtn" onclick="toggleGuideDetail()" style="text-align: center; color: var(--primary); font-weight: bold; cursor: pointer; margin-bottom: 15px; font-size: 0.95em; user-select: none;">
+        초보자용 상세 가이드 더보기 ▼
+    </div>
+
+    <div id="guideDetailContent" style="display: none; background: #fafafa; border: 1px solid #eee; padding: 15px; border-radius: 12px; margin-bottom: 15px; font-size: 0.9em; color: #555;">
+        <h4 style="margin: 0 0 8px 0; color: #1a237e; font-size: 1.05em;">📐 상세 이용 방법 안내</h4>
+        <ul style="padding-left: 18px; margin: 0; line-height: 1.7;">
+            <li style="margin-bottom: 6px;"><b>비품 넣기:</b> 만들어진 구역을 클릭하면 공간 이름을 정하고 비품을 체크(메모 추가)할 수 있습니다.</li>
+            <li style="margin-bottom: 6px;"><b>드래그로 이동:</b> 편집 모드에서는 말풍선 안의 아이템을 잡고 다른 구역으로 <b>드래그해서 이동</b>하거나, 바깥으로 던져 <b>삭제</b>할 수 있습니다.</li>
+            <li style="margin-bottom: 6px;"><b>업종별 추천:</b> 우측 하단 ⚙️(톱니바퀴)를 누르면 카페, 식당, 약국 등 우리 매장에 맞는 필수 비품 목록이 한 번에 세팅됩니다.</li>
+            <li><b>데이터 백업:</b> 스마트폰을 바꾸거나 데이터를 보관해야 할 때도 ⚙️ 설정에서 안전하게 백업 파일을 받을 수 있습니다.</li>
+        </ul>
+    </div>
+
+    <button onclick="document.getElementById('guideModal').style.display='none'" 
+            style="width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:12px; font-size:16px; font-weight:bold; cursor:pointer; box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);">
+        확인했습니다, 시작하기!
+    </button>
+</div>
+
+<div class="search-bar">
+    <div style="position: relative; display: flex; align-items: center;">
+        <input type="text" id="searchBox" placeholder="🔍 찾으실 소모품이나 품목을 입력하세요..."
+               oninput="integratedSearch(false)" onfocus="this.select()"
+               style="width: 100%; padding: 12px; padding-right: 45px; border: 1px solid #ddd; border-radius: 25px; font-size: 15px; box-sizing: border-box; background: #f5f5f5;">
+        <button id="micBtn" onclick="startVoiceRecognition()" 
+                style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; background: none; border: none; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+            🎤
+        </button>
+    </div>
+    <div id="searchResultDisplay" style="margin-top: 5px; font-size: 0.85em;"></div>
+</div>
+
+<div id="emptyGuide">등록된 사진이 없습니다. 아래 버튼을 눌러 매장 사진을 추가해 주세요!</div>
+<div id="canvasList"></div>
+
+<div style="display: flex; gap: 10px; margin-top: 15px; align-items: stretch;">
+    <button onclick="document.getElementById('fileInput').click()" 
+            style="flex: 1; padding:15px; border:none; border-radius:12px; background:#78909c; color:white; font-size:16px; font-weight:bold; cursor:pointer;">
+        📷 새로운 매장 사진 등록하기
+    </button>
+    <button onclick="openSettingsModal()" 
+            style="width: 50px; flex-shrink: 0; border:none; border-radius:12px; background:#cfd8dc; color:#37474f; font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+        ⚙️
+    </button>
+</div>
+
+<input type="file" id="fileInput" accept="image/*" style="display:none" onchange="addImage(this)">
+
+<div class="floating-remote">
+    <button id="detailToggleBtn" onclick="toggleDetails()" class="fab-btn" title="말풍선 토글" style="background: #e3f2fd; color: var(--primary);">💬</button>
+    
+    <div style="display: flex; flex-direction: column-reverse; gap: 10px; align-items: center;">
+        <button id="mainModeBtn" onclick="toggleEditMode()" class="fab-btn" title="모드 전환">🔒</button>
+        <button id="undoBtn" onclick="undo()" class="fab-btn" title="되돌리기" style="display: none; color: #666; cursor: not-allowed; background: #e0e0e0;" disabled>↩️</button>
+    </div>
+</div>
+
+<div id="modal">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; gap:10px;">
+        <input type="text" id="zoneNameInput" style="border:1px solid #ddd; border-radius:6px; padding:6px; font-size:1.1em; font-weight:bold; flex:1; min-width:0; box-sizing:border-box;">
+        <div style="display:flex; gap:6px; flex-shrink:0; align-items:center;">
+            <button class="btn-ghost" onclick="saveZone()" style="color:var(--primary); font-weight:bold; font-size:15px; padding:0 4px;">저장</button>
+            <button class="btn-ghost" onclick="deleteZone()" style="color:var(--danger); font-size:15px; padding:0 4px;">삭제</button>
+            <button class="btn-ghost" onclick="closeModal()" style="color:#555; font-size:15px; padding:0 4px;">닫기</button>
+        </div>
+    </div>
+    <div id="itemList"></div>
+    <div style="margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+        <input type="text" id="newItemInput" placeholder="새 품목 이름 직접 입력" style="width:65%; padding:6px; border-radius:4px; border:1px solid #ccc;">
+        <button onclick="addNewItem()" style="padding:6px 12px; cursor:pointer; border-radius:4px; border:1px solid #bbb; background:#eee;">추가</button>
+    </div>
+</div>
+
+<div id="settingsModal">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+        <h3 style="margin:0; font-size:1.2em; color:#37474f;">⚙️ 시스템 설정 및 관리</h3>
+        <button class="btn-ghost" onclick="closeSettingsModal()" style="color:#555; font-size: 16px; font-weight: bold;">닫기</button>
+    </div>
+    <div style="margin-bottom: 25px; padding: 12px; background: #f0f4f8; border-radius: 10px;">
+        <label style="font-weight: bold; font-size: 0.95em; color: #1a237e; display: block; margin-bottom: 8px;">🏬 업종별 기본 품목 원클릭 세팅</label>
+        <select id="industrySelect" style="width: 100%; padding: 10px; border: 1px solid #bbb; border-radius: 6px; font-size: 15px; background: white;">
+            <option value="cafe">☕ 카페 / 디저트 점포</option>
+            <option value="pharmacy">💊 약국 / 조제실</option>
+            <option value="hospital">🏥 병원 창고</option>
+            <option value="nailBeauty">💅 뷰티 / 네일숍</option>
+            <option value="phoneShop">📱 전자기기 / 휴대폰 매장</option>
+            <option value="restaurant">🥩 식당 / 요리 주점</option>
+            <option value="clothing">👗 의류 매장 / 옷가게</option>
+            <option value="beauty">✂️ 미용실 / 헤어숍</option>
+            <option value="mart">🏪 편의점 / 마트 / PC방</option>
+        </select>
+        <button class="btn-settings-item" onclick="applyIndustryTemplate()" style="background: #1a237e; color: white; border: none; margin-top: 8px;">
+            선택한 업종의 필수 항목 적용하기
+        </button>
+    </div>
+    <div>
+        <button class="btn-settings-item" onclick="exportSystemData()" style="background: white; border: 1px solid var(--primary); color: var(--primary);">📥 현재 데이터 백업 파일 받기</button>
+        <button class="btn-settings-item" onclick="document.getElementById('backupFileInput').click()" style="background: white; border: 1px solid var(--success); color: var(--success);">📤 백업 파일로 복구하기</button>
+        <input type="file" id="backupFileInput" accept=".json" style="display:none" onchange="importSystemData(this)">
+    </div>
+</div>
+
+<script>
+    let imageList = [], zoneCounter = 0, activeData = null, activeZone = null;
+    let showDetails = true, isEditMode = false; 
+    let historyStack = [], pendingHistoryState = null;
+    
+    let baseItems = JSON.parse(localStorage.getItem('baseItems')) || ["빨대", "냅킨", "시럽", "컵홀더", "우유", "원두", "캐리어", "뚜껑"];
+    let bubbleFontSize = 24; 
+    
+    let isDrawingNewZone = false;
+    let drawStart = { x: 0, y: 0 };
+    let currentDrawPos = { x: 0, y: 0 };
+
+    let holdingItem = null, mousePos = { x: 0, y: 0 };
+    let isMovingZone = false, isResizingZone = false, resizeHandle = ''; 
+    let zoneDragOffset = { x: 0, y: 0 }, hasDragged = false, startPointerPos = { x: 0, y: 0 };
+    const HANDLE_SIZE = 14; 
+    let showSearchArrow = false;
+
+    const DUMMY_IMAGE_DATA = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450"><rect width="800" height="450" fill="%23eceff1"/><text x="400" y="55" font-family="Arial" font-size="24" font-weight="bold" fill="%23546e7a" text-anchor="middle">🏬 매장 내부 보관 창고 (예시 화면)</text><text x="400" y="95" font-family="Arial" font-size="16" fill="%2378909c" text-anchor="middle">오른쪽 아래 🔒 버튼을 눌러 편집 모드를 켜고 마우스로 영역을 그려보세요!</text><rect x="50" y="140" width="700" height="30" fill="%23b0bec5"/><rect x="70" y="180" width="120" height="110" fill="none" stroke="%2390a4ae" stroke-width="3" stroke-dasharray="5,5"/><rect x="240" y="180" width="320" height="110" fill="none" stroke="%2390a4ae" stroke-width="3" stroke-dasharray="5,5"/><rect x="50" y="290" width="700" height="30" fill="%23b0bec5"/></svg>`;
+
+    /* 📱 이용 가이드 상세 토글 함수 */
+    function toggleGuideDetail() {
+        const detail = document.getElementById('guideDetailContent');
+        const btn = document.getElementById('guideMoreBtn');
+        if (detail.style.display === 'none') {
+            detail.style.display = 'block';
+            btn.innerText = '상세 가이드 접기 ▲';
+        } else {
+            detail.style.display = 'none';
+            btn.innerText = '초보자용 상세 가이드 더보기 ▼';
+        }
+    }
+
+    function cloneZonesState() { return imageList.map(data => ({ id: data.id, zones: JSON.parse(JSON.stringify(data.zones)) })); }
+    
+    function saveHistory(customState = null) {
+        historyStack.push(customState || cloneZonesState());
+        if (historyStack.length > 20) historyStack.shift();
+        updateUndoButtonState();
+    }
+
+    function undo() {
+        if (historyStack.length === 0) return;
+        historyStack.pop().forEach(savedData => {
+            let target = imageList.find(d => d.id == savedData.id);
+            if (target) target.zones = savedData.zones;
+        });
+        activeZone = null; activeData = null; showSearchArrow = false;
+        saveData(); updateUndoButtonState(); imageList.forEach(data => render(data));
+    }
+
+    function updateUndoButtonState() {
+        const btn = document.getElementById('undoBtn');
+        if (!btn) return;
+        if (historyStack.length > 0) {
+            btn.disabled = false; btn.style.background = "white"; btn.style.color = "#333"; btn.style.cursor = "pointer";
+        } else {
+            btn.disabled = true; btn.style.background = "#e0e0e0"; btn.style.color = "#666"; btn.style.cursor = "not-allowed";
+        }
+    }
+
+    function expandZoneList(dataId) {
+        const listDiv = document.getElementById('list-' + dataId);
+        const arrow = document.getElementById('arrow-' + dataId);
+        if (listDiv) { listDiv.style.display = "block"; if (arrow) arrow.innerText = "▼ 리스트 접기"; }
+    }
+
+    function toggleEditMode() {
+        isEditMode = !isEditMode;
+        const btn = document.getElementById('mainModeBtn');
+        const undoBtn = document.getElementById('undoBtn');
+        
+        if (isEditMode) {
+            btn.innerHTML = "✏️"; btn.style.background = "var(--orange)"; btn.style.boxShadow = "0 4px 15px rgba(230, 81, 0, 0.4)";
+            undoBtn.style.display = "flex";
+        } else {
+            btn.innerHTML = "🔒"; btn.style.background = "var(--primary)"; btn.style.boxShadow = "0 4px 15px rgba(33, 150, 243, 0.4)";
+            undoBtn.style.display = "none";
+            activeZone = null; showSearchArrow = false; isDrawingNewZone = false;
+        }
+        updateTouchAction(); imageList.forEach(data => render(data));
+    }
+
+    function updateTouchAction() {
+        imageList.forEach(data => {
+            if (data.canvas) {
+                data.canvas.style.touchAction = isEditMode ? 'none' : 'auto';
+                data.canvas.style.borderColor = isEditMode ? 'var(--orange)' : '#ddd';
+            }
+        });
+    }
+
+    function applyIndustryTemplate() {
+        const selectedType = document.getElementById('industrySelect').value;
+        const templates = {
+            cafe: ["빨대", "냅킨", "시럽", "컵홀더", "우유", "원두", "캐리어", "뚜껑"],
+            pharmacy: ["전문약(처방)", "일반약(비급여)", "영양제/건기식", "투약병/시럽병", "조제봉투", "연고류", "의약외품", "파스류"],
+            hospital: ["주사기/바늘", "거즈/붕대", "수액세트", "알코올솜", "반창고", "소독액", "위생장갑", "트레이"],
+            nailBeauty: ["젤네일(컬러)", "네일파츠", "네일화일", "니퍼/푸셔", "젤램프 필터", "아세톤", "속눈썹모", "위생패드"],
+            phoneShop: ["최신폰 기기박스", "투명케이스", "액정필름", "충전기/케이블", "그립톡", "유심카드", "사은품", "쇼핑백"],
+            restaurant: ["물티슈", "일회용 앞치마", "부탄가스", "불판", "가위/집게", "수저통", "술잔", "호출벨"],
+            clothing: ["옷걸이", "마네킹", "스팀다리미", "테이프클리너", "쇼핑백", "가격택", "도난방지택", "페이스커버"],
+            beauty: ["파마/염색약", "샴푸/린스", "타올", "고객가운", "파지/고무줄", "미용핀셋", "이발기오일", "헤어에센스"],
+            mart: ["나무젓가락", "빨대/스푼", "영수증롤", "종량제봉투", "소독제", "위생장갑", "가격라벨지", "박스테이프"]
+        };
+        if (confirm("선택하신 업종의 필수 품목 목록으로 변경하시겠습니까?")) {
+            baseItems = templates[selectedType]; saveData(); closeSettingsModal(); if (activeZone) openModal(activeZone);
+        }
+    }
+
+    function startVoiceRecognition() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) { alert("음성 인식을 지원하지 않는 브라우저입니다."); return; }
+        const recognition = new SpeechRecognition(); recognition.lang = 'ko-KR';
+        const micBtn = document.getElementById('micBtn'); const searchInput = document.getElementById('searchBox');
+
+        recognition.onstart = () => {
+            micBtn.textContent = '🛑'; searchInput.classList.add('listening'); searchInput.placeholder = "🎤 매장 소리를 듣고 있습니다..."; searchInput.value = "";
+        };
+        recognition.onspeechend = () => { recognition.stop(); };
+        recognition.onresult = (event) => {
+            let resultText = event.results[0][0].transcript.trim().replace(/(어디\s*있어|찾아줘|보여줘|검색해줘)$/, "").trim();
+            if (resultText) { searchInput.value = resultText; integratedSearch(true); }
+        };
+        recognition.onend = () => { micBtn.textContent = '🎤'; searchInput.classList.remove('listening'); searchInput.placeholder = "🔍 찾으실 소모품이나 품목을 입력하세요..."; };
+        recognition.start();
+    }
+
+    function openSettingsModal() { document.getElementById('settingsModal').style.display = 'block'; }
+    function closeSettingsModal() { document.getElementById('settingsModal').style.display = 'none'; }
+    function openModal(z) {
+        activeZone = z; document.getElementById('zoneNameInput').value = z.name;
+        document.getElementById('itemList').innerHTML = baseItems.map(item => {
+            const existing = z.items.find(i => i.name === item);
+            return `
+                <div style="margin-bottom:12px; padding:10px; background:#f9f9f9; border-radius:8px;">
+                    <div style="display:flex; align-items:center;">
+                        <input type="checkbox" class="cb" value="${item}" ${existing ? 'checked' : ''} onchange="toggleCommentField(this)">
+                        <span style="margin-left:8px; font-weight:bold;">${item}</span>
+                    </div>
+                    <input type="text" class="cmt" placeholder="세부 칸 위치나 메모 입력..." value="${existing && existing.comment ? existing.comment : ''}"
+                           style="width:100%; margin-top:8px; display:${existing?'block':'none'}; border:1px solid #ddd; padding:6px; border-radius:5px;">
+                </div>`;
+        }).join('');
+        document.getElementById('modal').style.display = 'block';
+    }
+
+    function toggleDetails() {
+        showDetails = !showDetails; 
+        document.getElementById('detailToggleBtn').style.background = showDetails ? '#e3f2fd' : 'white';
+        document.getElementById('detailToggleBtn').style.color = showDetails ? 'var(--primary)' : '#555';
+        imageList.forEach(data => render(data));
+    }
+
+    function editZone(dataId, index) {
+        activeData = imageList.find(d => d.id == dataId); activeZone = activeData.zones[index];
+        expandZoneList(dataId); showSearchArrow = false; openModal(activeZone); render(activeData);
+    }
+
+    function createNewCanvasElement(data) {
+        const section = document.createElement('div'); section.className = 'image-section';
+        const canvas = document.createElement('canvas');
+        canvas.width = 800; canvas.height = data.img.height * (800 / data.img.width);
+        data.canvas = canvas; data.ctx = canvas.getContext('2d');
+
+        const controls = document.createElement('div');
+        controls.style.cssText = "position: absolute; top: 20px; right: 20px; z-index: 10; display: flex; gap: 6px;";
+        controls.innerHTML = `
+            <button onclick="changeFontSize(3)" style="width:40px; height:40px; cursor:pointer; background:rgba(255,255,255,0.9); border:1px solid #ccc; border-radius:8px; font-weight:bold; font-size:20px;">+</button>
+            <button onclick="changeFontSize(-3)" style="width:40px; height:40px; cursor:pointer; background:rgba(255,255,255,0.9); border:1px solid #ccc; border-radius:8px; font-weight:bold; font-size:20px;">-</button>
+        `;
+
+        const listWrapper = document.createElement('div');
+        listWrapper.style.cssText = "margin-top: 15px; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; background: white;";
+        const toggleHeader = document.createElement('div');
+        toggleHeader.style.cssText = "padding: 13px 15px; background: #f8f9fa; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; font-size: 14px; font-weight: bold; color: #555; border-bottom: 1px solid #e0e0e0;";
+        toggleHeader.innerHTML = `<span>📋 구역 목록 (<span id="count-${data.id}">0</span>)</span><span id="arrow-${data.id}">▲ 리스트 펼치기</span>`;
+
+        const listDiv = document.createElement('div'); listDiv.id = 'list-' + data.id; listDiv.style.display = "none";
+        toggleHeader.onclick = () => {
+            const isCollapsed = listDiv.style.display === "none"; listDiv.style.display = isCollapsed ? "block" : "none";
+            document.getElementById('arrow-' + data.id).innerText = isCollapsed ? "▼ 리스트 접기" : "▲ 리스트 펼치기";
+        };
+
+        listWrapper.appendChild(toggleHeader); listWrapper.appendChild(listDiv);
+        section.appendChild(canvas); section.appendChild(controls); section.appendChild(listWrapper);
+        document.getElementById('canvasList').appendChild(section);
+        initCanvasEvents(data, canvas); imageList.push(data); updateTouchAction(); 
+    }
+
+    function changeFontSize(delta) { bubbleFontSize = Math.max(12, bubbleFontSize + delta); imageList.forEach(data => render(data)); }
+    
+    function addImage(input) {
+        if (!input.files[0]) return;
+        document.getElementById('emptyGuide').style.display = 'none';
+        if(imageList.length === 1 && imageList[0].id === "dummy_root") { document.getElementById('canvasList').innerHTML = ""; imageList = []; }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const MAX_WIDTH = 800; let width = img.width, height = img.height;
+                if (width > MAX_WIDTH) { height *= (MAX_WIDTH / width); width = MAX_WIDTH; }
+                const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+                canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                const compressedUrl = canvas.toDataURL('image/jpeg', 0.7);
+                const data = { imgData: compressedUrl, zones: [], id: Date.now() };
+                const finalImg = new Image(); finalImg.src = compressedUrl;
+                finalImg.onload = () => { data.img = finalImg; createNewCanvasElement(data); render(data); saveData(); };
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+
+    function initCanvasEvents(data, canvas) {
+        canvas.addEventListener('pointerdown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+            hasDragged = false; startPointerPos = { x, y }; showSearchArrow = false;
+
+            let clickedBubble = null;
+            if (showDetails) {
+                clickedBubble = data.zones.find(z => z.bubbleBox && x >= z.bubbleBox.x && x <= z.bubbleBox.x + z.bubbleBox.w && y >= z.bubbleBox.y && y <= z.bubbleBox.y + z.bubbleBox.h);
+            }
+
+            if (clickedBubble) {
+                if (isEditMode) {
+                    pendingHistoryState = cloneZonesState();
+                    const padding = 12, lineSpacing = 6, lineHeight = bubbleFontSize + lineSpacing;
+                    let clickedIdx = Math.floor((y - (clickedBubble.bubbleBox.y + padding)) / lineHeight);
+                    if (clickedIdx >= 0 && clickedIdx < clickedBubble.items.length) {
+                        holdingItem = { item: clickedBubble.items[clickedIdx], sourceZone: clickedBubble };
+                        clickedBubble.items.splice(clickedIdx, 1); mousePos = { x, y }; activeData = data; render(data);
+                    }
+                }
+                return; 
+            }
+
+            if (!isEditMode) return;
+            pendingHistoryState = cloneZonesState();
+
+            for (let z of data.zones) {
+                const corners = { tl: { x: z.x, y: z.y }, tr: { x: z.x + z.w, y: z.y }, bl: { x: z.x, y: z.y + z.h }, br: { x: z.x + z.w, y: z.y + z.h } };
+                for (let handle in corners) {
+                    const pt = corners[handle];
+                    if (x >= pt.x - HANDLE_SIZE && x <= pt.x + HANDLE_SIZE && y >= pt.y - HANDLE_SIZE && y <= pt.y + HANDLE_SIZE) {
+                        activeZone = z; activeData = data; isResizingZone = true; resizeHandle = handle; render(data); return;
+                    }
+                }
+            }
+
+            const clickedZone = data.zones.find(z => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h);
+            if (clickedZone) {
+                activeZone = clickedZone; activeData = data; isMovingZone = true;
+                zoneDragOffset = { x: x - clickedZone.x, y: y - clickedZone.y }; render(data); return;
+            }
+
+            isDrawingNewZone = true; activeData = data; drawStart = { x, y }; currentDrawPos = { x, y }; activeZone = null; render(data);
+        });
+
+        canvas.addEventListener('pointermove', (e) => {
+            if (!isEditMode) return; 
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+            if (Math.abs(x - startPointerPos.x) > 5 || Math.abs(y - startPointerPos.y) > 5) hasDragged = true; 
+
+            if (isDrawingNewZone) {
+                currentDrawPos = { x, y }; render(data);
+            } else if (holdingItem) {
+                mousePos = { x, y }; render(data);
+            } else if (isMovingZone && activeZone) {
+                activeZone.x = x - zoneDragOffset.x; activeZone.y = y - zoneDragOffset.y; render(data);
+            } else if (isResizingZone && activeZone) {
+                const z = activeZone;
+                if (resizeHandle === 'br') { z.w = x - z.x; z.h = y - z.y; } 
+                else if (resizeHandle === 'bl') { z.w = z.x + z.w - x; z.x = x; z.h = y - z.y; } 
+                else if (resizeHandle === 'tr') { z.w = x - z.x; z.h = z.y + z.h - y; z.y = y; } 
+                else if (resizeHandle === 'tl') { z.w = z.x + z.w - x; z.x = x; z.h = z.y + z.h - y; z.y = y; }
+                if (z.w < 40) z.w = 40; if (z.h < 40) z.h = 40; 
+                render(data);
+            }
+        });
+
+        canvas.addEventListener('pointerup', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+            if (isDrawingNewZone) {
+                isDrawingNewZone = false;
+                const x1 = Math.min(drawStart.x, x), y1 = Math.min(drawStart.y, y);
+                const w = Math.abs(x - drawStart.x), h = Math.abs(y - drawStart.y);
+
+                if (w > 25 && h > 25) {
+                    if (pendingHistoryState) { saveHistory(pendingHistoryState); pendingHistoryState = null; }
+                    expandZoneList(data.id);
+                    
+                    let newName = "", charCode = 65;
+                    while(true) {
+                        let candidate = String.fromCharCode(charCode) + "공간";
+                        if (!imageList.some(d => d.zones.some(z => z.name === candidate))) { newName = candidate; break; }
+                        charCode++; if (charCode > 90) charCode = 60;
+                    }
+                    let newZone = { x: x1, y: y1, w, h, name: newName, items: [] };
+                    data.zones.push(newZone); activeZone = newZone;
+                    if (data.id !== "dummy_root") saveData();
+                    render(data); openModal(newZone);
+                } else {
+                    render(data);
+                }
+                return;
+            }
+
+            if (Math.abs(x - startPointerPos.x) <= 5 && Math.abs(y - startPointerPos.y) <= 5) hasDragged = false; 
+
+            let clickedInsideBubble = false;
+            if (showDetails) {
+                clickedInsideBubble = data.zones.some(z => z.bubbleBox && x >= z.bubbleBox.x && x <= z.bubbleBox.x + z.bubbleBox.w && y >= z.bubbleBox.y && y <= z.bubbleBox.y + z.bubbleBox.h);
+            }
+
+            if (!hasDragged) {
+                if (holdingItem) { 
+                    holdingItem.sourceZone.items.push(holdingItem.item); 
+                    holdingItem = null; 
+                    render(data); 
+                    isMovingZone = false; isResizingZone = false; pendingHistoryState = null;
+                    return; 
+                }
+
+                if (!clickedInsideBubble) {
+                    const clickedZone = data.zones.find(z => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h);
+                    if (clickedZone) {
+                        activeZone = clickedZone; activeData = data; showSearchArrow = true;
+                        expandZoneList(data.id); openModal(clickedZone); render(data);
+                    }
+                }
+                isMovingZone = false; isResizingZone = false; pendingHistoryState = null; return;
+            }
+
+            if (isEditMode) {
+                if (pendingHistoryState) { saveHistory(pendingHistoryState); pendingHistoryState = null; }
+                if (holdingItem) {
+                    const targetZone = data.zones.find(z => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h);
+                    if (targetZone) {
+                        if (targetZone === holdingItem.sourceZone) { holdingItem.sourceZone.items.push(holdingItem.item); } 
+                        else if (!targetZone.items.some(i => i.name === holdingItem.item.name)) { targetZone.items.push(holdingItem.item); } 
+                        else { holdingItem.sourceZone.items.push(holdingItem.item); alert("이미 존재하는 품목입니다."); }
+                    } else {
+                        if (!confirm(`'${holdingItem.item.name}' 품목을 삭제하시겠습니까?`)) holdingItem.sourceZone.items.push(holdingItem.item);
+                    }
+                    holdingItem = null; render(data); if (data.id !== "dummy_root") saveData();
+                } else if (isMovingZone || isResizingZone) {
+                    isMovingZone = false; isResizingZone = false; if (data.id !== "dummy_root") saveData(); render(data);
+                }
+            }
+        });
+    }
+
+    function drawSpeechBubble(ctx, x, y, items, isBelow, z) {
+        if (!items || items.length === 0) return;
+        const padding = 12, lineSpacing = 6; ctx.font = `bold ${bubbleFontSize}px Arial`;
+        const lines = items.map(it => "• " + it.name); let maxTextWidth = 0;
+        lines.forEach(line => { const w = ctx.measureText(line).width; if (w > maxTextWidth) maxTextWidth = w; });
+        const boxWidth = maxTextWidth + (padding * 2);
+        const boxHeight = lines.length * bubbleFontSize + (lines.length - 1) * lineSpacing + (padding * 2);
+        const boxX = x, boxY = isBelow ? (y + 10) : (y - boxHeight - 10);
+        z.bubbleBox = { x: boxX, y: boxY, w: boxWidth, h: boxHeight };
+
+        ctx.fillStyle = 'rgba(255, 250, 204, 0.95)'; ctx.strokeStyle = 'rgba(220, 195, 130, 0.6)'; ctx.lineWidth = 1.5;
+        ctx.shadowColor = 'rgba(0,0,0,0.1)'; ctx.shadowBlur = 6; ctx.beginPath(); ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 4); ctx.fill(); ctx.stroke();
+        ctx.shadowColor = 'transparent'; ctx.fillStyle = '#2c2c2c'; ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+        lines.forEach((line, idx) => { ctx.fillText(line, boxX + padding, boxY + padding + idx * (bubbleFontSize + lineSpacing)); });
+    }
+
+    function render(data, bounce = 0) {
+        const { ctx, canvas, img, zones } = data;
+        ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        const countEl = document.getElementById('count-' + data.id); if (countEl) countEl.innerText = zones.length;
+
+        if (isDrawingNewZone && activeData === data) {
+            ctx.strokeStyle = 'rgba(33, 150, 243, 0.9)'; ctx.fillStyle = 'rgba(33, 150, 243, 0.15)'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+            const x1 = Math.min(drawStart.x, currentDrawPos.x), y1 = Math.min(drawStart.y, currentDrawPos.y);
+            const w = Math.abs(currentDrawPos.x - drawStart.x), h = Math.abs(currentDrawPos.y - drawStart.y);
+            ctx.fillRect(x1, y1, w, h); ctx.strokeRect(x1, y1, w, h); ctx.setLineDash([]);
+        }
+
+        zones.forEach((z) => {
+            const isHovered = holdingItem && activeData === data && mousePos.x >= z.x && mousePos.x <= z.x + z.w && mousePos.y >= z.y && mousePos.y <= z.y + z.h;
+            if (isHovered) { ctx.fillStyle = 'rgba(255, 235, 59, 0.18)'; ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 4; } 
+            else if (z === activeZone) { ctx.fillStyle = 'rgba(244, 67, 54, 0.08)'; ctx.strokeStyle = 'red'; ctx.lineWidth = 4; } 
+            else { ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'; ctx.strokeStyle = '#2E7D32'; ctx.lineWidth = 2; }
+            
+            ctx.fillRect(z.x, z.y, z.w, z.h); ctx.strokeRect(z.x, z.y, z.w, z.h);
+            ctx.fillStyle = '#111'; ctx.font = 'bold ' + Math.round(bubbleFontSize * 1.1) + 'px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(z.name, z.x + z.w / 2, z.y + z.h / 2);
+
+            if (isEditMode && z === activeZone) {
+                ctx.fillStyle = 'white'; ctx.strokeStyle = 'red'; ctx.lineWidth = 2;
+                const corners = [{ x: z.x, y: z.y }, { x: z.x + z.w, y: z.y }, { x: z.x, y: z.y + z.h }, { x: z.x + z.w, y: z.y + z.h }];
+                corners.forEach(c => { ctx.fillRect(c.x - 7, c.y - 7, 14, 14); ctx.strokeRect(c.x - 7, c.y - 7, 14, 14); });
+            }
+
+            if (showDetails && z.items.length > 0) {
+                drawSpeechBubble(ctx, z.x, (z.y < 60 ? z.y + z.h + 5 : z.y), z.items, z.y < 60, z);
+            } else { z.bubbleBox = null; }
+
+            if (z === activeZone && showSearchArrow) {
+                ctx.fillStyle = 'red'; ctx.font = 'bold 45px Arial'; ctx.textAlign = 'center'; ctx.fillText('▼', z.x + z.w / 2, z.y - 25 - bounce);
+            }
+        });
+
+        if (holdingItem && activeData === data) {
+            ctx.save(); ctx.fillStyle = 'rgba(33, 150, 243, 0.9)'; ctx.strokeStyle = '#1e88e5'; ctx.lineWidth = 2; ctx.font = `bold ${bubbleFontSize}px Arial`;
+            const text = "📦 " + holdingItem.item.name, boxW = ctx.measureText(text).width + 24, boxH = bubbleFontSize + 16;
+            ctx.beginPath(); ctx.roundRect(mousePos.x - boxW/2, mousePos.y - boxH/2, boxW, boxH, 20); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = 'white'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, mousePos.x, mousePos.y); ctx.restore();
+        }
+
+        document.getElementById('list-' + data.id).innerHTML = zones.map((z, i) => `
+            <div class="zone-item ${z === activeZone ? 'active' : ''}" style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="flex-grow:1;" onclick="selectZone('${data.id}', ${i})">
+                    <strong style="font-size:1.1em;">${z.name}</strong>
+                    <div style="font-size:0.9em; color:#555; margin-top:4px;">
+                        ${z.items.length > 0 ? z.items.map(it => it.name + (it.comment ? ' ('+it.comment+')':'')).join(', ') : '지정된 품목 없음'}
+                    </div>
+                </div>
+                <button onclick="editZone('${data.id}', ${i})" style="padding:6px 14px; border:1px solid #bbb; background:#fff; border-radius:15px; font-size:0.85em; font-weight:bold;">수정</button>
+            </div>`).join('');
+    }
+
+    function toggleCommentField(cb) { cb.parentElement.nextElementSibling.style.display = cb.checked ? 'block' : 'none'; }
+    function saveZone() {
+        saveHistory(); activeZone.name = document.getElementById('zoneNameInput').value; activeZone.items = [];
+        document.querySelectorAll('.cb:checked').forEach(cb => { activeZone.items.push({ name: cb.value, comment: cb.parentElement.nextElementSibling.value || "" }); });
+        if (activeData.id !== "dummy_root") saveData();
+        closeModal(); showSearchArrow = true; render(activeData);
+    }
+    function closeModal() { document.getElementById('modal').style.display = 'none'; showSearchArrow = true; if (activeData) render(activeData); }
+    function selectZone(dataId, index) {
+        activeData = imageList.find(d => d.id == dataId); activeZone = activeData.zones[index]; showSearchArrow = true; expandZoneList(dataId);
+        activeData.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' }); imageList.forEach(data => render(data));
+    }
+    function deleteZone() {
+        if (!confirm("이 구역을 정말 삭제하시겠습니까?")) return;
+        saveHistory(); activeData.zones = activeData.zones.filter(z => z !== activeZone);
+        if (activeData.id !== "dummy_root") saveData(); document.getElementById('modal').style.display = 'none';
+        activeZone = null; showSearchArrow = false; render(activeData);
+    }
+    function saveData() {
+        try { localStorage.setItem('savedSystemData', JSON.stringify(imageList.map(data => ({ id: data.id, imgData: data.img.src, zones: data.zones })))); } catch (e) { alert("용량 초과"); }
+        localStorage.setItem('baseItems', JSON.stringify(baseItems));
+    }
+    function addNewItem() {
+        const input = document.getElementById('newItemInput'); const val = input.value.trim();
+        if (val && !baseItems.includes(val)) { baseItems.push(val); input.value = ''; saveData(); openModal(activeZone); }
+    }
+    function exportSystemData() {
+        const packageData = { note: "백업", savedSystemData: JSON.parse(localStorage.getItem('savedSystemData') || "[]"), baseItems: JSON.parse(localStorage.getItem('baseItems') || "[]") };
+        const downloadLink = document.createElement('a'); downloadLink.setAttribute("href", "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(packageData)));
+        downloadLink.setAttribute("download", `매장위치지도_백업_${new Date().toISOString().slice(0,10)}.json`); downloadLink.click();
+    }
+    function importSystemData(input) {
+        if (!input.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const imported = JSON.parse(e.target.result);
+                if (imported.savedSystemData && imported.baseItems && confirm("백업 파일로 전체 복구하시겠습니까?")) {
+                    localStorage.setItem('savedSystemData', JSON.stringify(imported.savedSystemData)); localStorage.setItem('baseItems', JSON.stringify(imported.baseItems)); location.reload();
+                }
+            } catch (err) { alert("올바른 형식이 아닙니다."); }
+        };
+        reader.readAsText(input.files[0]);
+    }
+    function integratedSearch(autoTrigger = false) {
+        const query = document.getElementById('searchBox').value.trim(); const display = document.getElementById('searchResultDisplay');
+        activeZone = null; showSearchArrow = false; imageList.forEach(data => render(data));
+        let results = [], matched = []; if (!query) { display.innerHTML = ""; return; }
+
+        imageList.forEach(data => {
+            data.zones.forEach((z, idx) => {
+                if (z.items.some(i => i.name.includes(query))) {
+                    matched.push({ dataId: data.id, index: idx });
+                    results.push(`<div onclick="selectZone('${data.id}', ${idx})" style="display:inline-block; margin:3px; padding:6px 12px; background:#e3f2fd; border:1px solid #2196f3; border-radius:15px; cursor:pointer; font-size:0.85em;">${z.name}</div>`);
+                }
+            });
+        });
+        display.innerHTML = results.length ? "위치 바로가기: " + results.join('') : "결과를 찾지 못했습니다.";
+        if (autoTrigger && matched.length === 1) selectZone(matched[0].dataId, matched[0].index);
+    }
+
+    window.onload = () => {
+        const saved = JSON.parse(localStorage.getItem('savedSystemData'));
+        if (saved && saved.length > 0) {
+            saved.forEach(s => {
+                const img = new Image();
+                img.onload = () => { createNewCanvasElement({ img, zones: s.zones, id: s.id }); render(imageList[imageList.length-1]); };
+                img.src = s.imgData;
+            });
+        } else {
+            const img = new Image();
+            img.onload = () => {
+                const sample = { img, id: "dummy_root", zones: [{ x: 300, y: 160, w: 200, h: 110, name: "A공간", items: baseItems.slice(0,2).map(name => ({ name, comment: "상단 첫번째 칸" })) }] };
+                createNewCanvasElement(sample); render(sample);
+            };
+            img.src = DUMMY_IMAGE_DATA;
+        }
+    };
+</script>
+</body>
+</html>
