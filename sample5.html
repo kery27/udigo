@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>매장 보관 공간 관리 시스템</title>
+    <style>
+        :root { --primary: #2196f3; --danger: #f44336; --success: #2E7D32; --bg: #f4f7f6; }
+        body { font-family: 'Pretendard', sans-serif; padding: 15px; background: var(--bg); }
+        .search-bar { background: white; padding: 15px; margin-bottom: 20px; border-radius: 12px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .image-section { background: white; padding: 20px; margin-bottom: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        canvas { border: 2px solid #ddd; border-radius: 8px; touch-action: none; max-width: 100%; display: block; margin: 10px auto; cursor: crosshair; }
+        .zone-item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; }
+        .zone-item:hover { background: #f9f9f9; }
+        .active { background: #e3f2fd !important; border-radius: 6px; font-weight: bold; }
+
+        /* ⚙️ 모달 공통 스타일 */
+        #modal, #guideModal, #settingsModal {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 90%; max-width: 500px; max-height: 80vh; background: white; padding: 20px;
+            border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 1000; overflow-y: auto; box-sizing: border-box;
+        }
+        #settingsModal { z-index: 1001; max-width: 420px; }
+
+        .btn-ghost { background: none; border: none; cursor: pointer; font-size: 14px; }
+        #emptyGuide { text-align: center; color: #888; padding: 50px 0; display: none; }
+
+        .btn-settings-item { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.95em; text-align: center; box-sizing: border-box; }
+
+        /* 🎤 음성인식 중일 때 일렁이는 애니메이션 효과 */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(33, 150, 243, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(33, 150, 243, 0); }
+        }
+        .listening { animation: pulse 1.2s infinite; background: #e3f2fd !important; border-color: var(--primary) !important; }
+    </style>
+</head>
+<body>
+
+<div id="guideModal" style="display:block; max-width: 550px; line-height: 1.6;">
+    <h2 style="text-align: center; color: var(--primary); margin-top: 0; margin-bottom: 15px;">
+        매장 보관 공간 관리 시스템 🚀
+    </h2>
+    <p style="text-align: center; color: #666; font-size: 0.95em; margin-bottom: 25px;">
+        매장 사진 위에 구역을 지정하고 물건 위치를 스마트하게 관리해보세요!
+    </p>
+
+    <hr style="border: 0; height: 1px; background: #eee; margin: 20px 0;">
+
+    <div style="margin-bottom: 20px;">
+        <h3 style="margin: 0 0 8px 0; font-size: 1.05em; color: #333;">📍 1. 공간 지정 및 크기 변경</h3>
+        <ul style="margin: 0; padding-left: 20px; color: #555; font-size: 0.9em;">
+            <li><b>구역 만들기:</b> 사진 위를 마우스나 손가락으로 <b>드래그</b>하면 네모난 구역이 생성됩니다.</li>
+            <li><b>구역 이동:</b> 생성된 구역의 <b>가운데 빈 곳을 잡고 드래그</b>하면 자유롭게 이동합니다.</li>
+            <li><b>크기 조절:</b> 구역 선택 시 나타나는 <b>네 모서리의 흰색 점</b>을 당겨서 크기를 조절하세요.</li>
+        </ul>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+        <h3 style="margin: 0 0 8px 0; font-size: 1.05em; color: #333;">📦 2. 품목 등록 및 메모(코멘트)</h3>
+        <ul style="margin: 0; padding-left: 20px; color: #555; font-size: 0.9em;">
+            <li>구역을 새로 그리거나 구역을 <b>터치/클릭</b>하면 상세 품목 지정 창이 열립니다.</li>
+            <li>품목을 체크하면 상세 위치를 적을 수 있는 <b>코멘트 창</b>이 열립니다.</li>
+        </ul>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+        <h3 style="margin: 0 0 8px 0; font-size: 1.05em; color: #333;">🔍 3. 위치 찾기 및 음성 검색 🎤</h3>
+        <ul style="margin: 0; padding-left: 20px; color: #555; font-size: 0.9em;">
+            <li>상단 검색창에 '빨대' 등을 입력하거나 <b>🎤 마이크 버튼</b>을 누르고 말해보세요.</li>
+            <li>"빨대 어디 있어?"라고 말하면 자동으로 단어를 분석해 해당 구역으로 스크롤한 뒤 <b>빨간 화살표(▼)</b>를 꽂아줍니다.</li>
+        </ul>
+    </div>
+
+    <div style="margin-bottom: 25px;">
+        <h3 style="margin: 0 0 8px 0; font-size: 1.05em; color: var(--success);">🔄 4. 품목 이동 및 안전 삭제</h3>
+        <ul style="margin: 0; padding-left: 20px; color: #555; font-size: 0.9em;">
+            <li><b>구역 간 이동:</b> 말풍선의 품목 글자를 잡고 <b>다른 구역으로 드래그</b>하면 바로 이동합니다.</li>
+            <li><b>안전한 삭제:</b> 품목을 잡고 <b>구역이 없는 빈 허공으로 멀리 떨어뜨렸을 때만</b> 최종 삭제 여부를 묻는 팝업창이 작동합니다.</li>
+        </ul>
+    </div>
+
+    <button onclick="document.getElementById('guideModal').style.display='none'"
+            style="width:100%; padding:15px; background:var(--primary); color:white; border:none; border-radius:12px; font-size:16px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3);">
+        이해했습니다, 시작하기!
+    </button>
+</div>
+
+<div class="search-bar">
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="position: relative; flex: 1; display: flex; align-items: center;">
+            <input type="text" id="searchBox" placeholder="🔍 품목 검색... (예: 빨대, 냅킨)"
+                   oninput="integratedSearch(false)" onfocus="this.select()"
+                   style="width: 100%; padding: 10px; padding-right: 45px; border: 1px solid #ddd; border-radius: 8px; min-width: 0; box-sizing: border-box; transition: all 0.3s;">
+            <button id="micBtn" onclick="startVoiceRecognition()"
+                    style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 35px; height: 35px; background: none; border: none; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                🎤
+            </button>
+        </div>
+        <button onclick="toggleDetails()"
+                style="flex-shrink: 0; padding: 8px 12px; cursor: pointer; border-radius: 20px; border: 1px solid var(--success); background: white; color: var(--success); white-space: nowrap;">
+            상세 표시: <span id="toggleText">ON</span>
+        </button>
+    </div>
+    <div id="searchResultDisplay" style="margin-top: 8px; font-size: 0.85em;"></div>
+    <div id="guideMsg" onclick="hideGuide()"
+         style="font-size: 0.8em; color: #888; cursor: pointer; margin-top: 5px; display: none;">
+        💡 팁: 검색된 구역 이름을 누르면 해당 위치로 이동합니다. (클릭해서 닫기)
+    </div>
+</div>
+
+<div id="emptyGuide">등록된 사진이 없습니다. 아래 버튼을 눌러 매장 사진을 추가해 주세요!</div>
+<div id="canvasList"></div>
+
+<div style="display: flex; gap: 10px; margin-top: 15px; align-items: stretch;">
+    <button onclick="document.getElementById('fileInput').click()"
+            style="flex: 1; padding:15px; border:none; border-radius:12px; background:var(--primary); color:white; font-size:16px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 10px rgba(33, 150, 243, 0.2);">
+        📷 사진 추가하기
+    </button>
+    <button onclick="openSettingsModal()"
+            style="width: 50px; flex-shrink: 0; border:none; border-radius:12px; background:#78909c; color:white; font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 10px rgba(120, 144, 156, 0.2);">
+        ⚙️
+    </button>
+</div>
+
+<input type="file" id="fileInput" accept="image/*" style="display:none" onchange="addImage(this)">
+
+<div id="modal">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <input type="text" id="zoneNameInput" style="border:none; font-size:1.2em; font-weight:bold; width:50%;">
+        <div>
+            <button class="btn-ghost" onclick="saveZone()" style="color:var(--primary); font-weight:bold;">저장</button>
+            <button class="btn-ghost" onclick="deleteZone()" style="color:var(--danger); margin-left:10px;">삭제</button>
+            <button class="btn-ghost" onclick="closeModal()" style="color:#555; margin-left:10px;">닫기</button>
+        </div>
+    </div>
+    <div id="itemList"></div>
+    <div style="margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+        <input type="text" id="newItemInput" placeholder="새 품목 이름 입력" style="width:70%; padding:5px;">
+        <button onclick="addNewItem()" style="padding:5px 10px; cursor:pointer;">추가</button>
+    </div>
+</div>
+
+<div id="settingsModal">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+        <h3 style="margin:0; font-size:1.2em; color:#37474f;">⚙️ 시스템 설정 및 관리</h3>
+        <button class="btn-ghost" onclick="closeSettingsModal()" style="color:#555; font-size: 16px; font-weight: bold;">닫기</button>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <p style="margin: 0 0 10px 0; font-size: 0.9em; color: #666; line-height: 1.4;">
+            💡 브라우저 청소나 폰 교체 시 데이터가 사라질 수 있습니다. 정기적으로 현재 상태를 백업 파일로 보관하세요.
+        </p>
+
+        <button class="btn-settings-item" onclick="exportSystemData()"
+                style="background: white; border: 1px solid var(--primary); color: var(--primary);">
+            📥 현재 데이터 백업 (파일 다운로드)
+        </button>
+        <button class="btn-settings-item" onclick="document.getElementById('backupFileInput').click()"
+                style="background: white; border: 1px solid var(--success); color: var(--success);">
+            📤 백업 파일로 복구하기
+        </button>
+        <input type="file" id="backupFileInput" accept=".json" style="display:none" onchange="importSystemData(this)">
+    </div>
+
+    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #ddd;">
+        <span style="font-size: 0.85em; color: #999; font-weight: bold; display: block; margin-bottom: 5px;">🔧 추후 업데이트 예정 기능</span>
+        <div style="font-size: 0.85em; color: #ccc; padding: 10px; border: 1px dashed #eee; border-radius: 6px; background: #fafafa;">
+            • 글자 크기 기본값 설정<br>
+            • 매장별 카테고리 필터 관리<br>
+            • 다크 모드 (어두운 화면) 지원
+        </div>
+    </div>
+</div>
+
+<script>
+    let imageList = [], zoneCounter = 0, activeData = null, activeZone = null;
+    let isDrawing = false, dragStart = {x:0, y:0}, currentRect = null;
+    let showDetails = true;
+    let baseItems = JSON.parse(localStorage.getItem('baseItems')) || ["빨대", "냅킨", "시럽", "컵홀더", "우유", "원두", "캐리어", "뚜껑"];
+
+    let bubbleFontSize = 16;
+
+    let holdingItem = null;
+    let mousePos = { x: 0, y: 0 };
+    let isMovingZone = false;
+    let isResizingZone = false;
+    let resizeHandle = '';
+    let zoneDragOffset = { x: 0, y: 0 };
+
+    let hasDragged = false;
+    let startPointerPos = { x: 0, y: 0 };
+    const HANDLE_SIZE = 8;
+
+    let showSearchArrow = false;
+
+    const DUMMY_IMAGE_DATA = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450"><rect width="800" height="450" fill="%23eceff1"/><text x="400" y="55" font-family="Arial" font-size="24" font-weight="bold" fill="%23546e7a" text-anchor="middle">☕ 매장 내부 창고 / 진열대 (예시 화면)</text><text x="400" y="95" font-family="Arial" font-size="16" fill="%2378909c" text-anchor="middle">실제 매장 사진을 올리기 전 자유롭게 기능을 테스트해보세요!</text><rect x="50" y="140" width="700" height="30" fill="%23b0bec5"/><rect x="70" y="180" width="120" height="110" fill="none" stroke="%2390a4ae" stroke-width="3" stroke-dasharray="5,5"/><text x="130" y="240" font-family="Arial" font-size="16" fill="%2390a4ae" text-anchor="middle">미지정 공간</text><rect x="240" y="180" width="320" height="110" fill="none" stroke="%2390a4ae" stroke-width="3" stroke-dasharray="5,5"/><rect x="50" y="290" width="700" height="30" fill="%23b0bec5"/><rect x="100" y="330" width="600" height="100" fill="none" stroke="%2390a4ae" stroke-width="3" stroke-dasharray="5,5"/></svg>`;
+
+    // 🎤 [신규 추가] 모바일 내장 음성인식 엔진 제어 함수
+    function startVoiceRecognition() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("죄송합니다. 현재 브라우저나 기기 환경은 음성 인식을 지원하지 않습니다. 최신 크롬(Chrome)이나 사파리(Safari) 브라우저를 이용해 주세요.");
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'ko-KR';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        const micBtn = document.getElementById('micBtn');
+        const searchInput = document.getElementById('searchBox');
+
+        recognition.onstart = () => {
+            micBtn.textContent = '🛑';
+            searchInput.classList.add('listening');
+            searchInput.placeholder = "🎤 매장 소리를 듣고 있습니다...";
+            searchInput.value = "";
+        };
+
+        recognition.onspeechend = () => {
+            recognition.stop();
+        };
+
+        recognition.onresult = (event) => {
+            let resultText = event.results[0][0].transcript.trim();
+
+            // "빨대 어디 있어?", "냅킨 찾아줘" 같은 문장형 서술어 필터링 처리
+            resultText = resultText.replace(/(어디\s*있어|어디있어|찾아줘|어디있냐|보여줘|있어|있니|검색해줘)$/, "").trim();
+
+            if (resultText) {
+                searchInput.value = resultText;
+                // 음성 인식으로 검색할 때는 결과 구역이 1개면 그리로 바로 화면 자동 이동(true 전달)
+                integratedSearch(true);
+            }
+        };
+
+        recognition.onerror = (e) => {
+            console.error("음성인식 에러 발생: ", e.error);
+            if(e.error === 'not-allowed') {
+                alert("마이크 사용 권한이 거부되었습니다. 브라우저 주소창 왼쪽 자물쇠 아이콘을 눌러 권한을 허용해 주세요.");
+            }
+        };
+
+        recognition.onend = () => {
+            micBtn.textContent = '🎤';
+            searchInput.classList.remove('listening');
+            searchInput.placeholder = "🔍 품목 검색... (예: 빨대, 냅킨)";
+        };
+
+        recognition.start();
+    }
+
+    function openSettingsModal() { document.getElementById('settingsModal').style.display = 'block'; }
+    function closeSettingsModal() { document.getElementById('settingsModal').style.display = 'none'; }
+
+    function exportSystemData() {
+        const savedData = localStorage.getItem('savedSystemData') || "[]";
+        const savedItems = localStorage.getItem('baseItems') || "[]";
+
+        const packageData = {
+            note: "매장 보관 공간 관리 시스템 백업 파일",
+            savedSystemData: JSON.parse(savedData),
+            baseItems: JSON.parse(savedItems)
+        };
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(packageData));
+        const downloadLink = document.createElement('a');
+        downloadLink.setAttribute("href", dataStr);
+
+        const date = new Date();
+        const dateStr = date.getFullYear() + String(date.getMonth() + 1).padStart(2, '0') + String(date.getDate()).padStart(2, '0');
+        downloadLink.setAttribute("download", `매장위치지도_백업_${dateStr}.json`);
+
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        downloadLink.remove();
+    }
+
+    function importSystemData(input) {
+        if (!input.files[0]) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const imported = JSON.parse(e.target.result);
+                if (imported.savedSystemData && imported.baseItems) {
+                    if (confirm("백업 파일을 불러오시겠습니까? 기존에 등록되어 있던 현재 내역은 모두 덮어써집니다.")) {
+                        localStorage.setItem('savedSystemData', JSON.stringify(imported.savedSystemData));
+                        localStorage.setItem('baseItems', JSON.stringify(imported.baseItems));
+                        alert("성공적으로 복구되었습니다! 시스템을 다시 시작합니다.");
+                        location.reload();
+                    }
+                } else {
+                    alert("올바른 백업 파일(.json) 형식이 아닙니다.");
+                }
+            } catch (err) {
+                alert("파일을 읽는 중 에러가 발생했습니다. 정상적인 백업 파일인지 확인해주세요.");
+            }
+        };
+        reader.readAsText(input.files[0]);
+        input.value = "";
+    }
+
+    function saveData() {
+        const dataToSave = imageList.map(data => ({
+            id: data.id,
+            imgData: data.img.src,
+            zones: data.zones
+        }));
+        try {
+            localStorage.setItem('savedSystemData', JSON.stringify(dataToSave));
+        } catch (e) {
+            alert("저장 용량이 꽉 찼습니다! 사용하지 않는 사진을 삭제해주시거나 백업 후 정리해주세요.");
+        }
+        localStorage.setItem('baseItems', JSON.stringify(baseItems));
+    }
+
+    function addNewItem() {
+        const input = document.getElementById('newItemInput');
+        const val = input.value.trim();
+        if (val && !baseItems.includes(val)) {
+            baseItems.push(val);
+            input.value = '';
+            saveData();
+            openModal(activeZone);
+        }
+    }
+
+    function openModal(z) {
+        activeZone = z;
+        document.getElementById('zoneNameInput').value = z.name;
+        document.getElementById('itemList').innerHTML = baseItems.map(item => {
+            const existing = z.items.find(i => i.name === item);
+            const commentVal = (existing && existing.comment) ? existing.comment : "";
+            return `
+                <div style="margin-bottom:12px; padding:10px; background:#f9f9f9; border-radius:8px;">
+                    <div style="display:flex; align-items:center;">
+                        <input type="checkbox" class="cb" value="${item}" ${existing ? 'checked' : ''} onchange="toggleCommentField(this)">
+                        <span style="margin-left:8px;">${item}</span>
+                    </div>
+                    <input type="text" class="cmt" placeholder="코멘트 입력..." value="${commentVal}"
+                           style="width:100%; margin-top:8px; display:${existing?'block':'none'}; border:1px solid #ddd; padding:5px; border-radius:5px;">
+                </div>`;
+        }).join('');
+        document.getElementById('modal').style.display = 'block';
+    }
+
+    function toggleDetails() {
+        showDetails = !showDetails;
+        document.getElementById('toggleText').innerText = showDetails ? 'ON' : 'OFF';
+        imageList.forEach(data => render(data));
+    }
+
+    function editZone(dataId, index) {
+        activeData = imageList.find(d => d.id == dataId);
+        activeZone = activeData.zones[index];
+        showSearchArrow = false;
+        openModal(activeZone);
+        render(activeData);
+    }
+
+    function createNewCanvasElement(data) {
+        const section = document.createElement('div');
+        section.className = 'image-section';
+        section.style.position = "relative";
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = data.img.height * (800 / data.img.width);
+        data.canvas = canvas;
+        data.ctx = canvas.getContext('2d');
+
+        const controls = document.createElement('div');
+        controls.style.position = "absolute";
+        controls.style.top = "20px";
+        controls.style.right = "20px";
+        controls.style.zIndex = "10";
+        controls.style.display = "flex";
+        controls.style.gap = "5px";
+        controls.innerHTML = `
+            <button onclick="changeFontSize(2)" style="width:35px; height:35px; cursor:pointer; background:rgba(255,255,255,0.8); border:1px solid #ccc; border-radius:5px; font-weight:bold; font-size:18px;">+</button>
+            <button onclick="changeFontSize(-2)" style="width:35px; height:35px; cursor:pointer; background:rgba(255,255,255,0.8); border:1px solid #ccc; border-radius:5px; font-weight:bold; font-size:18px;">-</button>
+        `;
+
+        const listDiv = document.createElement('div');
+        listDiv.id = 'list-' + data.id;
+
+        section.appendChild(canvas);
+        section.appendChild(controls);
+        section.appendChild(listDiv);
+
+        document.getElementById('canvasList').appendChild(section);
+        initCanvasEvents(data, canvas);
+        imageList.push(data);
+    }
+
+    function changeFontSize(delta) {
+        bubbleFontSize = Math.max(8, bubbleFontSize + delta);
+        imageList.forEach(data => render(data));
+    }
+
+    function addImage(input) {
+        if (!input.files[0]) return;
+        document.getElementById('emptyGuide').style.display = 'none';
+
+        if(imageList.length === 1 && imageList[0].id === "dummy_root") {
+            document.getElementById('canvasList').innerHTML = "";
+            imageList = [];
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const MAX_WIDTH = 800;
+                let width = img.width;
+                let height = img.height;
+                if (width > MAX_WIDTH) {
+                    height *= (MAX_WIDTH / width);
+                    width = MAX_WIDTH;
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                const data = { imgData: compressedDataUrl, zones: [], id: Date.now() };
+                const finalImg = new Image();
+                finalImg.src = compressedDataUrl;
+                finalImg.onload = () => {
+                    data.img = finalImg;
+                    createNewCanvasElement(data);
+                    render(data);
+                    saveData();
+                };
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+
+    function initCanvasEvents(data, canvas) {
+        canvas.addEventListener('pointerdown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+            hasDragged = false;
+            startPointerPos = { x, y };
+            showSearchArrow = false;
+
+            for (let z of data.zones) {
+                if (z.bubbleBox && x >= z.bubbleBox.x && x <= z.bubbleBox.x + z.bubbleBox.w &&
+                    y >= z.bubbleBox.y && y <= z.bubbleBox.y + z.bubbleBox.h) {
+
+                    const padding = 12;
+                    const lineSpacing = 6;
+                    const clickYInBubble = y - (z.bubbleBox.y + padding);
+                    const lineHeight = bubbleFontSize + lineSpacing;
+
+                    let clickedIdx = Math.floor(clickYInBubble / lineHeight);
+
+                    if (clickedIdx >= 0 && clickedIdx < z.items.length) {
+                        holdingItem = { item: z.items[clickedIdx], sourceZone: z };
+                        z.items.splice(clickedIdx, 1);
+                        mousePos = { x, y };
+                        activeData = data;
+                        render(data);
+                        return;
+                    }
+                }
+            }
+
+            for (let z of data.zones) {
+                const corners = {
+                    tl: { x: z.x, y: z.y },
+                    tr: { x: z.x + z.w, y: z.y },
+                    bl: { x: z.x, y: z.y + z.h },
+                    br: { x: z.x + z.w, y: z.y + z.h }
+                };
+                for (let handle in corners) {
+                    const pt = corners[handle];
+                    if (x >= pt.x - HANDLE_SIZE && x <= pt.x + HANDLE_SIZE &&
+                        y >= pt.y - HANDLE_SIZE && y <= pt.y + HANDLE_SIZE) {
+                        activeZone = z;
+                        activeData = data;
+                        isResizingZone = true;
+                        resizeHandle = handle;
+                        render(data);
+                        return;
+                    }
+                }
+            }
+
+            const clickedZone = data.zones.find(z => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h);
+            if (clickedZone) {
+                activeZone = clickedZone;
+                activeData = data;
+                isMovingZone = true;
+                zoneDragOffset = { x: x - clickedZone.x, y: y - clickedZone.y };
+                render(data);
+                return;
+            }
+
+            activeZone = null;
+            activeData = null;
+            render(data);
+
+            isDrawing = true;
+            dragStart = { x, y };
+            currentRect = { x, y, w: 0, h: 0 };
+        });
+
+        canvas.addEventListener('pointermove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+            if (holdingItem) {
+                if (Math.abs(x - startPointerPos.x) > 5 || Math.abs(y - startPointerPos.y) > 5) {
+                    hasDragged = true;
+                }
+                mousePos = { x, y };
+                render(data);
+            } else if (isMovingZone && activeZone) {
+                if (Math.abs(x - startPointerPos.x) > 3 || Math.abs(y - startPointerPos.y) > 3) {
+                    hasDragged = true;
+                }
+                activeZone.x = x - zoneDragOffset.x;
+                activeZone.y = y - zoneDragOffset.y;
+                render(data);
+            } else if (isResizingZone && activeZone) {
+                const z = activeZone;
+                if (resizeHandle === 'br') {
+                    z.w = x - z.x; z.h = y - z.y;
+                } else if (resizeHandle === 'bl') {
+                    z.w = z.x + z.w - x; z.x = x; z.h = y - z.y;
+                } else if (resizeHandle === 'tr') {
+                    z.w = x - z.x; z.h = z.y + z.h - y; z.y = y;
+                } else if (resizeHandle === 'tl') {
+                    z.w = z.x + z.w - x; z.x = x; z.h = z.y + z.h - y; z.y = y;
+                }
+                if (z.w < 30) z.w = 30;
+                if (z.h < 30) z.h = 30;
+                render(data);
+            } else if (isDrawing) {
+                currentRect.w = x - dragStart.x;
+                currentRect.h = y - dragStart.y;
+                render(data);
+            }
+        });
+
+        canvas.addEventListener('pointerup', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+            if (holdingItem) {
+                if (!hasDragged) {
+                    holdingItem.sourceZone.items.push(holdingItem.item);
+                } else {
+                    const targetZone = data.zones.find(z => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h);
+                    if (targetZone) {
+                        if (targetZone === holdingItem.sourceZone) {
+                            holdingItem.sourceZone.items.push(holdingItem.item);
+                        } else if (!targetZone.items.some(i => i.name === holdingItem.item.name)) {
+                            targetZone.items.push(holdingItem.item);
+                        } else {
+                            holdingItem.sourceZone.items.push(holdingItem.item);
+                            alert("이미 해당 구역에 존재하는 품목입니다.");
+                        }
+                    } else {
+                        if (confirm(`'${holdingItem.item.name}' 품목을 구역에서 삭제하시겠습니까?`)) {
+                        } else {
+                            holdingItem.sourceZone.items.push(holdingItem.item);
+                        }
+                    }
+                }
+                holdingItem = null;
+                render(data);
+                if (data.id !== "dummy_root") saveData();
+            } else if (isMovingZone) {
+                isMovingZone = false;
+                if (!hasDragged && activeZone) {
+                    openModal(activeZone);
+                } else {
+                    if (data.id !== "dummy_root") saveData();
+                }
+                render(data);
+            } else if (isResizingZone) {
+                isResizingZone = false;
+                if (data.id !== "dummy_root") saveData();
+                render(data);
+            } else if (isDrawing) {
+                if (Math.abs(currentRect.w) > 5) {
+                    let newName = "";
+                    let charCode = 65;
+                    while(true) {
+                        let candidate = String.fromCharCode(charCode) + "공간";
+                        let isDuplicate = imageList.some(d => d.zones.some(z => z.name === candidate));
+                        if (!isDuplicate) { newName = candidate; break; }
+                        charCode++;
+                        if (charCode > 90) charCode = 65;
+                    }
+                    activeZone = { ...currentRect, name: newName, items: [] };
+                    data.zones.push(activeZone);
+                    activeData = data;
+                    if (data.id !== "dummy_root") saveData();
+                    openModal(activeZone);
+                }
+                isDrawing = false;
+                currentRect = null;
+                render(data);
+            }
+        });
+    }
+
+    function drawSpeechBubble(ctx, x, y, items, isBelow, z) {
+        if (!items || items.length === 0) return;
+
+        const padding = 12;
+        const lineSpacing = 6;
+        ctx.font = `bold ${bubbleFontSize}px Arial`;
+
+        const lines = items.map(it => "• " + it.name);
+
+        let maxTextWidth = 0;
+        lines.forEach(line => {
+            const w = ctx.measureText(line).width;
+            if (w > maxTextWidth) maxTextWidth = w;
+        });
+
+        const boxWidth = maxTextWidth + (padding * 2);
+        const boxHeight = lines.length * bubbleFontSize + (lines.length - 1) * lineSpacing + (padding * 2);
+
+        const boxX = x;
+        const boxY = isBelow ? (y + 10) : (y - boxHeight - 10);
+
+        z.bubbleBox = { x: boxX, y: boxY, w: boxWidth, h: boxHeight };
+
+        ctx.fillStyle = 'rgba(255, 250, 204, 0.93)';
+        ctx.strokeStyle = 'rgba(220, 195, 130, 0.6)';
+        ctx.lineWidth = 1.5;
+
+        ctx.shadowColor = 'rgba(0,0,0,0.12)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 4;
+
+        ctx.beginPath();
+        ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.shadowColor = 'transparent';
+
+        ctx.fillStyle = '#2c2c2c';
+        ctx.textBaseline = 'top';
+        ctx.textAlign = 'left';
+
+        lines.forEach((line, idx) => {
+            const lineY = boxY + padding + idx * (bubbleFontSize + lineSpacing);
+            ctx.fillText(line, boxX + padding, lineY);
+        });
+    }
+
+    function render(data, bounce = 0) {
+        const { ctx, canvas, img, zones } = data;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        zones.forEach((z) => {
+            ctx.fillStyle = (z === activeZone) ? 'rgba(255, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.6)';
+            ctx.fillRect(z.x, z.y, z.w, z.h);
+            ctx.strokeStyle = (z === activeZone) ? 'red' : '#2E7D32';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(z.x, z.y, z.w, z.h);
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(z.name, z.x + z.w / 2, z.y + z.h / 2);
+
+            if (z === activeZone) {
+                ctx.fillStyle = 'white';
+                ctx.strokeStyle = 'red';
+                ctx.lineWidth = 2;
+                const hs = 5;
+                const corners = [
+                    { x: z.x, y: z.y },
+                    { x: z.x + z.w, y: z.y },
+                    { x: z.x, y: z.y + z.h },
+                    { x: z.x + z.w, y: z.y + z.h }
+                ];
+                corners.forEach(c => {
+                    ctx.fillRect(c.x - hs, c.y - hs, hs * 2, hs * 2);
+                    ctx.strokeRect(c.x - hs, c.y - hs, hs * 2, hs * 2);
+                });
+            }
+
+            const shouldShowBubble = showDetails && (z.items.length > 0);
+
+            if (shouldShowBubble) {
+                const needsBubbleBelow = z.y < 50;
+                const bubbleY = needsBubbleBelow ? (z.y + z.h + 5) : z.y;
+                drawSpeechBubble(ctx, z.x, bubbleY, z.items, needsBubbleBelow, z);
+            } else {
+                z.bubbleBox = null;
+            }
+
+            if (z === activeZone && showSearchArrow) {
+                ctx.fillStyle = 'red';
+                ctx.font = 'bold 40px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('▼', z.x + z.w / 2, z.y - 20 - bounce);
+            }
+        });
+
+        if (currentRect) {
+            ctx.strokeStyle = 'green';
+            ctx.strokeRect(currentRect.x, currentRect.y, currentRect.w, currentRect.h);
+        }
+
+        if (holdingItem) {
+            ctx.fillStyle = '#ffeb3b';
+            ctx.strokeStyle = '#2196f3';
+            ctx.lineWidth = 1;
+            const chipW = 90;
+            const chipH = 28;
+            ctx.beginPath();
+            ctx.roundRect(mousePos.x - chipW / 2, mousePos.y - chipH / 2, chipW, chipH, 4);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#333';
+            ctx.font = `bold ${bubbleFontSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(holdingItem.item.name, mousePos.x, mousePos.y);
+        }
+
+        document.getElementById('list-' + data.id).innerHTML = zones.map((z, i) => `
+            <div class="zone-item ${z === activeZone ? 'active' : ''}"
+                 style="display:flex; justify-content:space-between; align-items:center; padding: 12px; border-bottom: 1px solid #eee;">
+                <div style="flex-grow:1; cursor:pointer;" onclick="selectZone('${data.id}', ${i})">
+                    <strong style="font-size:1.05em;">${z.name}</strong>
+                    <div style="font-size:0.85em; color:#666; margin-top:2px;">
+                        ${z.items.length > 0 ? z.items.map(it => it.name + (it.comment ? ' ('+it.comment+')':'')).join(', ') : '품목 없음'}
+                    </div>
+                </div>
+                <button onclick="editZone('${data.id}', ${i})"
+                        style="margin-left:15px; padding:6px 12px; cursor:pointer; border:1px solid #ddd; background:#fff; border-radius:15px; font-size:0.8em; color:#555;">
+                    수정
+                </button>
+            </div>`).join('');
+    }
+
+    function toggleCommentField(cb) { cb.parentElement.nextElementSibling.style.display = cb.checked ? 'block' : 'none'; }
+
+    function saveZone() {
+        activeZone.name = document.getElementById('zoneNameInput').value;
+        activeZone.items = [];
+        document.querySelectorAll('.cb:checked').forEach(cb => {
+            activeZone.items.push({ name: cb.value, comment: cb.parentElement.nextElementSibling.value || "" });
+        });
+        if (activeData.id !== "dummy_root") saveData();
+        closeModal();
+        activeZone = null;
+        render(activeData);
+    }
+
+    function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+    function selectZone(dataId, index) {
+        activeData = imageList.find(d => d.id == dataId);
+        activeZone = activeData.zones[index];
+        showSearchArrow = true;
+        activeData.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        imageList.forEach(data => render(data));
+    }
+
+    function deleteZone() {
+        activeData.zones = activeData.zones.filter(z => z !== activeZone);
+        if (activeData.id !== "dummy_root") saveData();
+        closeModal();
+        render(activeData);
+    }
+
+    // 🎤 [업데이트] 음성인식 결과를 받아 1개 일치 시 자동 스크롤 추적 옵션(autoTrigger) 추가
+    function integratedSearch(autoTrigger = false) {
+        const query = document.getElementById('searchBox').value.trim();
+        const display = document.getElementById('searchResultDisplay');
+        activeZone = null;
+        showSearchArrow = false;
+        imageList.forEach(data => render(data));
+
+        let results = [];
+        let matchedZones = [];
+
+        if (!query) {
+            display.innerHTML = "";
+            return;
+        }
+
+        imageList.forEach(data => {
+            data.zones.forEach((z, idx) => {
+                if (z.items.some(i => i.name.includes(query))) {
+                    matchedZones.push({ dataId: data.id, index: idx });
+                    results.push(`
+                        <div onclick="selectZone('${data.id}', ${idx})"
+                             style="display:inline-block; margin:5px; padding:8px 15px; background:#e3f2fd; border:1px solid #2196f3; border-radius:20px; cursor:pointer; font-size:0.9em;">
+                             ${z.name}
+                        </div>`);
+                }
+            });
+        });
+
+        display.innerHTML = results.length ? "검색 위치: " + results.join('') : "결과 없음";
+
+        // 음성 명령어로 검색한 결과가 '단 1개의 구역'만 매칭될 경우, 터치할 필요도 없이 즉시 자동 포커싱
+        if (autoTrigger && matchedZones.length === 1) {
+            selectZone(matchedZones[0].dataId, matchedZones[0].index);
+        }
+    }
+
+    function hideGuide() {
+        document.getElementById('guideMsg').style.display = 'none';
+        localStorage.setItem('guideClosed', 'true');
+    }
+
+    window.onload = () => {
+        const saved = JSON.parse(localStorage.getItem('savedSystemData'));
+        if (saved && saved.length > 0) {
+            document.getElementById('emptyGuide').style.display = 'none';
+            saved.forEach(s => {
+                const img = new Image();
+                img.onload = () => {
+                    const data = { img, zones: s.zones, id: s.id };
+                    createNewCanvasElement(data);
+                    render(data);
+                };
+                img.src = s.imgData;
+            });
+        } else {
+            const img = new Image();
+            img.onload = () => {
+                const sampleData = {
+                    img: img,
+                    id: "dummy_root",
+                    zones: [
+                        { x: 240, y: 180, w: 320, h: 110, name: "카운터 하단 (샘플)", items: [{ name: "빨대", comment: "첫째칸 보관" }, { name: "냅킨", comment: "" }] }
+                    ]
+                };
+                createNewCanvasElement(sampleData);
+                render(sampleData);
+            };
+            img.src = DUMMY_IMAGE_DATA;
+        }
+
+        if (!localStorage.getItem('guideClosed')) {
+            document.getElementById('guideMsg').style.display = 'block';
+        }
+    };
+</script>
+</body>
+</html>
