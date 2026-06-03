@@ -28,6 +28,15 @@
             --ivory-text: #f9f6f0;
             --charcoal-mute: #5c5a54;
         }
+        /* 편집 모드 시 화면 어둡게 처리를 위한 오버레이 */
+        #editOverlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.2); /* 어둡게 할 투명도 조절 */
+            pointer-events: none; /* 클릭은 통과되게 설정 */
+            z-index: 9998;
+            display: none; /* 기본은 숨김 */
+        }
 
         *{ box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -169,6 +178,7 @@
             border: none;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
             cursor: pointer;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -178,17 +188,6 @@
             background: #ffffff;
             color: var(--charcoal);
             border: 1px solid var(--ivory-border);
-        }
-
-        .status-dot {
-            width: 5px;
-            height: 5px;
-            border-radius: 50%;
-            background: #fff;
-            transition: background 0.2s;
-        }
-        #mainModeBtn.view-mode .status-dot {
-            background: var(--charcoal);
         }
 
         /* 초미니멀 라운드 버튼 (34px) */
@@ -223,9 +222,20 @@
         }
 
         #modal, #guideModal, #settingsModal {
-            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 92%; max-width: 480px; max-height: 85vh; background: var(--card); padding: 24px;
-            border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0,0,0,0.15); z-index: 1010; overflow-y: auto; box-sizing: border-box;
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 92%; max-width: 480px;
+            max-height: 85vh;
+            background: var(--card);
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3); /* 그림자를 조금 더 진하게 */
+            z-index: 9999; /* 오버레이(9998)보다 높게 설정 */
+            overflow-y: auto;
+            box-sizing: border-box;
         }
         #settingsModal { z-index: 1020; max-width: 420px; }
 
@@ -258,6 +268,8 @@
     </style>
 </head>
 <body>
+<div id="editOverlay"></div>
+
 
 <div id="guideModal" style="display:block; line-height: 1.6;">
     <h2 style="text-align: center; color: var(--accent); margin-bottom: 16px; font-size: 1.25em;">
@@ -270,7 +282,7 @@
     <div style="background: var(--bg); border: 1px solid var(--border); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
         <ul style="padding-left: 20px; margin: 0; font-size: 13px; color: var(--text2); line-height: 1.8;">
             <li><b>📷 사진 등록:</b> 매장 창고나 비품실 사진을 먼저 올려주세요.</li>
-            <li><b>✏️ 구역 그리기:</b> 우측 하단 <b>[EDIT]</b> 상태에서 사진 위를 <b>대각선으로 슥 드래그</b>하면 새 구역이 생깁니다.</li>
+            <li><b>✏️ 구역 그리기:</b> 우측 하단 <b>[자물쇠가 열림]</b> 상태에서 사진 위를 <b>대각선으로 슥 드래그</b>하면 새 구역이 생깁니다.</li>
             <li><b>🔍 비품 검색:</b> 상단 검색창이나 <b>🎤 마이크 버튼</b>으로 물건 위치를 쉽게 찾으세요.</li>
         </ul>
     </div>
@@ -343,9 +355,8 @@
         undo
     </button>
 
-    <button id="mainModeBtn" onclick="toggleEditMode()" title="모드 전환">
-        <span class="status-dot"></span>
-        <span id="modeText">EDIT</span>
+    <button id="mainModeBtn" onclick="toggleEditMode()" title="모드 전환" style="padding: 0 12px;">
+        <i id="modeIcon" class="ti ti-lock" style="font-size: 11px; transform: scale(1.9);" ></i>
     </button>
 </div>
 
@@ -407,7 +418,7 @@
     };
 
     let imageList = [], activeData = null, activeZone = null;
-    let showDetails = true, isEditMode = true;
+    let showDetails = true, isEditMode = false;
     let historyStack = [], pendingHistoryState = null;
 
     let baseItems = ["빨대", "냅킨", "시럽", "컵홀더", "우유", "원두", "캐리어", "뚜껑"];
@@ -416,7 +427,7 @@
         if (storedItems) baseItems = JSON.parse(storedItems);
     } catch(e) {}
 
-    let bubbleFontSize = 14;
+    let bubbleFontSize = 22;
     let isDrawingNewZone = false;
     let drawStart = { x: 0, y: 0 };
     let currentDrawPos = { x: 0, y: 0 };
@@ -500,18 +511,22 @@
         if (listDiv) { listDiv.style.display = "block"; if (arrow) arrow.innerText = "▼ 리스트 접기"; }
     }
 
+    // 🛠️ 자물쇠 아이콘으로 동작하도록 수정된 토글 함수
     function toggleEditMode() {
         isEditMode = !isEditMode;
         const btn = document.getElementById('mainModeBtn');
-        const modeText = document.getElementById('modeText');
+        const icon = document.getElementById('modeIcon');
         const undoBtn = document.getElementById('undoBtn');
+        const overlay = document.getElementById('editOverlay');
 
         if (isEditMode) {
-            if (modeText) modeText.innerText = "EDIT";
+            overlay.style.display = 'block'; // 어두운 화면 활성화
+            if (icon) icon.className = 'ti ti-lock-open'; // 열린 자물쇠
             if (btn) btn.classList.remove('view-mode');
             if (undoBtn) undoBtn.style.display = "flex";
         } else {
-            if (modeText) modeText.innerText = "VIEW";
+            overlay.style.display = 'none'; // 어두운 화면 숨김
+            if (icon) icon.className = 'ti ti-lock'; // 닫힌 자물쇠
             if (btn) btn.classList.add('view-mode');
             if (undoBtn) undoBtn.style.display = "none";
         }
@@ -886,17 +901,22 @@
             ctx.fillStyle = '#ffffff';
             ctx.strokeStyle = '#e0dbd0';
             ctx.lineWidth = 1;
+
+            const boxX = 20, boxY = 20, boxW = 760, boxH = 410;
             ctx.beginPath();
-            drawSafeRoundRect(ctx, 40, 40, 720, 370, 8);
+            drawSafeRoundRect(ctx, boxX, boxY, boxW, boxH, 8);
             ctx.fill(); ctx.stroke();
+
             ctx.fillStyle = '#1a1a18';
             ctx.font = 'bold 22px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('📷 매장 내부 보관 창고 (예시 화면)', 400, 200);
+            ctx.fillText('📷 매장 내부 보관 창고 (예시 화면)', boxX + boxW/2, boxY + boxH/2 - 20);
+
             ctx.fillStyle = '#9b9890';
-            ctx.font = '14px sans-serif';
-            ctx.fillText('오른쪽 아래 EDIT 버튼 상태에서 구역을 대각선으로 슥 그려보세요!', 400, 240);
+            ctx.font = '20px sans-serif';
+            ctx.fillText('오른쪽 아래 자물쇠 아이콘을 눌러 편집모드 진입 후', boxX + boxW/2, boxY + boxH/2 + 20);
+            ctx.fillText('슥 드래그하여 구역을 만들어보세요!', boxX + boxW/2, boxY + boxH/2 + 45);
         }
 
         const countEl = document.getElementById('count-' + data.id); if (countEl) countEl.innerText = zones.length;
@@ -940,19 +960,20 @@
         if (holdingItem && activeData === data) {
             ctx.save(); ctx.fillStyle = '#2d6a4f'; ctx.strokeStyle = '#52b788'; ctx.lineWidth = 1.5;
 
-            let dragFontSize = Math.max(16, Math.round(bubbleFontSize * 1.25));
+            let dragFontSize = Math.max(22, Math.round(bubbleFontSize * 1.3));
             ctx.font = `bold ${dragFontSize}px sans-serif`;
 
             const text = "📦 " + holdingItem.item.name;
-            const boxW = ctx.measureText(text).width + 30, boxH = dragFontSize + 18;
+            const boxW = ctx.measureText(text).width + 40, boxH = dragFontSize + 24;
 
             let dragX = mousePos.x;
-            let dragY = mousePos.y - 35;
+            let dragY = mousePos.y - 70;
 
             ctx.beginPath();
             drawSafeRoundRect(ctx, dragX - boxW/2, dragY - boxH/2, boxW, boxH, 18);
             ctx.fill(); ctx.stroke();
-            ctx.fillStyle = 'white'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, dragX, dragY); ctx.restore();
+            ctx.fillStyle = 'white'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(text, dragX, dragY); ctx.restore();
         }
 
         const listContainer = document.getElementById('list-' + data.id);
@@ -1112,18 +1133,14 @@
 
     function deleteImage(dataId) {
         if (confirm("이 사진과 포함된 모든 구역을 삭제하시겠습니까?")) {
-            // 1. 삭제할 데이터를 찾음 (삭제되어도 다른 데이터의 타이틀은 건드리지 않음)
             if (activeData && activeData.id == dataId) {
                 activeData = null; activeZone = null; showSearchArrow = false;
             }
 
-            // 2. 해당 id를 제외한 배열로 필터링 (재넘버링 로직 삭제)
             imageList = imageList.filter(d => d.id != dataId);
 
-            // 3. 데이터 저장 및 뷰 갱신
             saveData();
 
-            // 4. 화면 리프레시
             document.getElementById('canvasList').innerHTML = "";
             if (imageList.length === 0) {
                 document.getElementById('emptyGuide').style.display = 'block';
@@ -1133,15 +1150,21 @@
         }
     }
 
+    // 🛠️ 초기 실행 (VIEW 모드 적용 및 자물쇠 아이콘 세팅)
     window.onload = () => {
-        const btn = document.getElementById('mainModeBtn');
-        if (btn) btn.classList.remove('view-mode');
-        const modeText = document.getElementById('modeText');
-        if (modeText) modeText.innerText = "EDIT";
-        const undoBtn = document.getElementById('undoBtn');
-        if (undoBtn) undoBtn.style.display = "flex";
+        isEditMode = false;
 
+        const btn = document.getElementById('mainModeBtn');
+        const icon = document.getElementById('modeIcon');
+        const undoBtn = document.getElementById('undoBtn');
+        const overlay = document.getElementById('editOverlay');
         const detailBtn = document.getElementById('detailToggleBtn');
+
+        if (btn) btn.classList.add('view-mode');
+        if (icon) icon.className = 'ti ti-lock'; // 시작 시 닫힌 자물쇠(VIEW 모드)
+        if (undoBtn) undoBtn.style.display = "none";
+        if (overlay) overlay.style.display = 'none';
+
         if (detailBtn) {
             detailBtn.style.background = 'var(--charcoal)';
             detailBtn.style.color = 'var(--ivory-text)';
@@ -1159,7 +1182,7 @@
                 img.src = s.imgData;
             });
         } else {
-            const sample = { img: null, id: "dummy_root", title: "#1", zones: [{ x: 300, y: 160, w: 200, h: 110, name: "A구역", items: baseItems.slice(0,2).map(name => ({ name, comment: "상단 첫번째 칸" })) }] };
+            const sample = { img: null, id: "dummy_root", title: "#1", zones: [{ x: 70, y: 120, w: 100, h: 220, name: "A구역", items: baseItems.slice(0,2).map(name => ({ name, comment: "상단 첫번째 칸" })) }] };
             createNewCanvasElement(sample);
         }
     };
