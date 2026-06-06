@@ -180,7 +180,7 @@
     <div style="background: var(--bg); border: 1px solid var(--border); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
         <ul style="padding-left: 20px; margin: 0; font-size: 13px; color: var(--text2); line-height: 1.8;">
             <li><b>📷 사진 등록:</b> 매장 창고나 비품실 사진을 올려주세요.</li>
-            <li><b>🤖 AI 자동 분석:</b> 사진 등록 후 <b>[🤖 AI 분석]</b>을 누르면 수납장 구역을 자동으로 찾아줍니다. 중복 영역은 자동 제거되고, <b>정확도를 확인</b>한 뒤 원하는 구역만 선택해서 추가할 수 있어요!</li>
+            <li><b>🤖 AI 자동 분석:</b> 사진 등록 후 <b>[AI 분석]</b>을 누르면 수납장 구역을 자동으로 찾아줍니다. 중복 영역은 자동 제거되고, <b>정확도를 확인</b>한 뒤 원하는 구역만 선택해서 추가할 수 있어요!</li>
             <li><b>✏️ 구역 수정:</b> <b>[자물쇠 열림]</b> 상태에서 구역을 드래그하여 옮기거나 새로 그릴 수 있습니다.</li>
             <li><b>🔍 비품 검색:</b> 상단 검색창이나 <b>🎤 마이크 버튼</b>으로 물건을 찾으세요.</li>
         </ul>
@@ -282,7 +282,6 @@
     <!-- 헤더 -->
     <div style="padding:0 16px 10px; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:8px;">
         <div style="display:flex; align-items:center; gap:6px; min-width:0;">
-            <span style="font-size:15px;">🤖</span>
             <span style="font-weight:700; font-size:14px; color:var(--text); white-space:nowrap;">AI 분석 결과</span>
             <span id="aiPreviewTitle" style="font-size:11px; color:var(--text3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
         </div>
@@ -315,7 +314,7 @@
     "></div>
 </div>
 <div id="aiLoadingMsg" style="display: none;">
-    AI가 구역을 분석하고 있습니다<span class="loading-dots"></span>
+    분석중<span class="loading-dots"></span>
 </div>
 
 <script>
@@ -781,7 +780,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 5px;">
                 <h3 id="title-${data.id}" style="margin:0; font-size:16px; color: var(--accent); cursor: pointer; flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" onclick="renameImage('${data.id}')">${data.title}</h3>
                 <div style="display: flex; gap: 8px;">
-                    <button id="aiBtn-${data.id}" onclick="runAIAnalysis('${data.id}')" class="btn-xs" style="color: var(--accent); border-color: var(--accent); padding: 5px 10px; border-radius: 6px; font-weight: bold;">🤖 AI 분석</button>
+                    <button id="aiBtn-${data.id}" onclick="runAIAnalysis('${data.id}')" class="btn-xs" style="color: var(--accent); border-color: var(--accent); padding: 5px 10px; border-radius: 6px; font-weight: bold;">AI 분석</button>
                     <button onclick="deleteImage('${data.id}')" class="btn-xs" style="flex-shrink: 0; color: var(--danger); padding: 5px 10px; border-radius: 6px;">삭제</button>
                 </div>
             </div><hr style="border: 0; border-top: 1px solid var(--border); margin-top: 8px;">`;
