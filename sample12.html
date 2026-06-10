@@ -105,12 +105,12 @@
         }
 
         #mainModeBtn {
-            height: 34px; padding: 0 14px; border-radius: 17px; font-size: 11px; font-weight: 600;
+            height: 34px; padding: 0 16px; border-radius: 17px; font-size: 11px; font-weight: 600;
             letter-spacing: 0.2px; background: var(--charcoal); color: var(--ivory-text);
             border: none; display: flex; align-items: center; justify-content: center; gap: 6px;
-            cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); min-width: 90px;
         }
-        #mainModeBtn.view-mode { background: #ffffff; color: var(--charcoal); border: 1px solid var(--ivory-border); }
+        #mainModeBtn.view-mode { background: #ffffff; color: var(--charcoal); border: 3px solid var(--accent);  }
 
         .fab-btn {
             width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--ivory-border);
@@ -185,17 +185,20 @@
     <div style="background: var(--bg); border: 1px solid var(--border); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
         <ul style="padding-left: 20px; margin: 0; font-size: 13px; color: var(--text2); line-height: 1.8;">
             <li><b>📷 사진 등록:</b> 매장 창고나 비품실 사진을 올려주세요.</li>
+            <li><b>✏️ 구역 수정:</b> 화면 오른쪽 아래 <b>[읽기 전용]</b>을 눌러 <b>[편집모드]</b>로 변경해 구역을 드래그해서 그릴 수 있습니다.</li>
             <li><b>🤖 AI 자동 분석:</b> 사진 등록 후 <b>[AI 분석]</b>을 누르면 수납장 구역을 자동으로 찾아줍니다.</li>
-            <li><b>✏️ 구역 수정:</b> <b>[자물쇠 열림]</b> 상태에서 구역을 드래그하여 옮기거나 새로 그릴 수 있습니다.</li>
-            <li><b>📄 PDF 출력:</b> 편집한 내용을 PDF로 출력할수 있어요</li>
             <li><b>🔍 비품 검색:</b> 상단 검색창이나 <b>🎤 마이크 버튼</b>으로 물건을 찾으세요.</li>
+            <li><b>📄 PDF 출력:</b> 편집한 내용을 PDF로 출력 할 수 있어요.</li>
         </ul>
     </div>
     <button onclick="document.getElementById('guideModal').style.display='none'" class="btn-base btn-primary" style="width: 100%;">확인했습니다, 시작하기!</button>
 </div>
 
 <div class="search-bar">
-    <div class="app-brand"><i class="ti ti-box" style="margin-right: 8px;"></i>창고지기</div>
+    <div class="app-brand">
+        <i class="ti ti-box" style="margin-right: 8px;"></i>창고지기
+        <span style="font-size: 8px; padding: 2px 4px; background: var(--accent2); color: white; border-radius: 4px; vertical-align: middle; margin-left: 4px; opacity: 0.8;">BETA</span>
+    </div>
     <div class="search-input-wrap">
         <input type="text" id="searchBox" placeholder="물건 이름으로 검색" oninput="integratedSearch(false)" onfocus="this.select()">
         <button id="micBtn" onclick="startVoiceRecognition()">
@@ -223,8 +226,9 @@
     <button class="fab-btn" onclick="changeFontSize(-2)">-</button>
     <button id="detailToggleBtn" onclick="toggleDetails()" class="fab-btn" title="말풍선 토글">detail</button>
     <button id="undoBtn" onclick="undo()" class="fab-btn" title="되돌리기" disabled>undo</button>
-    <button id="mainModeBtn" onclick="toggleEditMode()" title="모드 전환" style="padding: 0 12px;">
-        <i id="modeIcon" class="ti ti-lock" style="font-size: 11px; transform: scale(1.9);" ></i>
+    <button id="mainModeBtn" onclick="toggleEditMode()" title="모드 전환">
+        <i id="modeIcon" class="ti ti-eye" style="font-size: 14px;"></i>
+        <span id="modeText" style="margin-left: 4px;">읽기 전용</span>
     </button>
 </div>
 
@@ -268,7 +272,6 @@
     </div>
 </div>
 
-<!-- AI 분석 결과 — 바텀시트 -->
 <div id="aiSheetBackdrop" style="display:none; position:fixed; inset:0; z-index:9990; background:transparent; pointer-events:none;"></div>
 
 <div id="aiPreviewModal" style="
@@ -280,19 +283,16 @@
     transition: transform 0.32s cubic-bezier(0.32,0.72,0,1);
     transform: translateY(100%);
 ">
-    <!-- 드래그 핸들 -->
     <div style="flex-shrink:0; display:flex; justify-content:center; padding:10px 0 4px; cursor:grab;" id="aiSheetHandle">
         <div style="width:36px; height:4px; border-radius:2px; background:var(--border);"></div>
     </div>
 
-    <!-- 헤더 -->
     <div style="padding:0 16px 10px; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:8px;">
         <div style="display:flex; align-items:center; gap:6px; min-width:0;">
             <span style="font-weight:700; font-size:14px; color:var(--text); white-space:nowrap;">AI 분석 결과</span>
             <span id="aiPreviewTitle" style="font-size:11px; color:var(--text3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
         </div>
         <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-            <!-- 범례 -->
             <span style="font-size:10px; color:#2d6a4f; font-weight:700;">●높음</span>
             <span style="font-size:10px; color:#e09b3a; font-weight:700;">●보통</span>
             <span style="font-size:10px; color:#c44; font-weight:700;">●낮음</span>
@@ -300,7 +300,6 @@
         </div>
     </div>
 
-    <!-- 전체선택 + 확정 버튼 한줄 -->
     <div style="padding:0 16px 8px; flex-shrink:0; display:flex; gap:6px; align-items:center;">
         <button onclick="selectAllAI(true)"  class="btn-base btn-xs" style="font-size:11px; padding:4px 10px;">전체 선택</button>
         <button onclick="selectAllAI(false)" class="btn-base btn-xs" style="font-size:11px; padding:4px 10px;">전체 해제</button>
@@ -309,7 +308,6 @@
         </button>
     </div>
 
-    <!-- 후보 목록 — 가로 스크롤 카드 -->
     <div id="aiPreviewBody" style="
         overflow-x:auto; overflow-y:hidden;
         padding:0 16px 16px;
@@ -443,24 +441,20 @@
                 onmouseleave="highlightAIBox(${i}, false)"
                 ontouchstart="highlightAIBox(${i}, true)"
                 onclick="toggleAIRow(${i})">
-                <!-- 정확도 컬러 바 -->
                 <div style="height:4px; background:${confColor(box.confidence)};"></div>
                 <div style="padding:10px 10px 8px;">
-                    <!-- 체크박스 + 번호 -->
                     <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
                         <input type="checkbox" id="aicheck-${i}" checked
                             onclick="event.stopPropagation(); syncAIRowStyle(${i})"
                             style="accent-color:var(--accent); width:15px; height:15px; flex-shrink:0;">
                         <span style="font-size:12px; font-weight:700; color:var(--text);">구역 ${i + 1}</span>
                     </div>
-                    <!-- confidence 뱃지 -->
                     <div style="display:inline-flex; align-items:center; gap:4px;
                                 padding:3px 8px; border-radius:20px;
                                 background:${confBg(box.confidence)}; margin-bottom:6px;">
                         <span style="font-size:14px; font-weight:800; color:${confColor(box.confidence)};">${Math.round(box.confidence * 100)}%</span>
                         <span style="font-size:10px; font-weight:600; color:${confColor(box.confidence)};">${confLabel(box.confidence)}</span>
                     </div>
-                    <!-- 크기 -->
                     <div style="font-size:10px; color:var(--text3); line-height:1.5;">
                         ${Math.round(box.w)}×${Math.round(box.h)}px
                     </div>
@@ -741,10 +735,32 @@
 
     function toggleEditMode() {
         isEditMode = !isEditMode;
-        const btn = document.getElementById('mainModeBtn'), icon = document.getElementById('modeIcon'), undoBtn = document.getElementById('undoBtn'), overlay = document.getElementById('editOverlay');
-        if (isEditMode) { overlay.style.display = 'block'; if (icon) icon.className = 'ti ti-lock-open'; if (btn) btn.classList.remove('view-mode'); if (undoBtn) undoBtn.style.display = "flex"; }
-        else { overlay.style.display = 'none'; if (icon) icon.className = 'ti ti-lock'; if (btn) btn.classList.add('view-mode'); if (undoBtn) undoBtn.style.display = "none"; }
-        imageList.forEach(data => { if (data.canvas) { data.canvas.style.touchAction = isEditMode ? 'none' : 'auto'; data.canvas.style.borderColor = isEditMode ? 'var(--warn)' : 'var(--border)'; } });
+        const btn = document.getElementById('mainModeBtn'),
+              icon = document.getElementById('modeIcon'),
+              modeText = document.getElementById('modeText'),
+              undoBtn = document.getElementById('undoBtn'),
+              overlay = document.getElementById('editOverlay');
+
+        if (isEditMode) {
+            if(overlay) overlay.style.display = 'block';
+            if (icon) icon.className = 'ti ti-pencil';
+            if (modeText) modeText.innerText = '편집 활성';
+            if (btn) btn.classList.remove('view-mode');
+            if (undoBtn) undoBtn.style.display = "flex";
+        } else {
+            if(overlay) overlay.style.display = 'none';
+            if (icon) icon.className = 'ti ti-eye';
+            if (modeText) modeText.innerText = '읽기 전용';
+            if (btn) btn.classList.add('view-mode');
+            if (undoBtn) undoBtn.style.display = "none";
+        }
+
+        imageList.forEach(data => {
+            if (data.canvas) {
+                data.canvas.style.touchAction = isEditMode ? 'none' : 'auto';
+                data.canvas.style.borderColor = isEditMode ? 'var(--warn)' : 'var(--border)';
+            }
+        });
         imageList.forEach(data => render(data));
     }
 
@@ -950,8 +966,13 @@
         if (img && img.src) { ctx.drawImage(img, 0, 0, canvas.width, canvas.height); } else {
             ctx.fillStyle = '#f8f6f1'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#e0dbd0'; ctx.lineWidth = 1;
             const boxX = 20, boxY = 20, boxW = 760, boxH = 410; ctx.beginPath(); drawSafeRoundRect(ctx, boxX, boxY, boxW, boxH, 8); ctx.fill(); ctx.stroke();
-            ctx.fillStyle = '#1a1a18'; ctx.font = 'bold 22px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('📷 매장 내부 보관 창고 (예시 화면)', boxX + boxW/2, boxY + boxH/2 - 20);
-            ctx.fillStyle = '#9b9890'; ctx.font = '20px sans-serif'; ctx.fillText('오른쪽 아래 자물쇠 아이콘을 눌러 편집모드 진입 후', boxX + boxW/2, boxY + boxH/2 + 20); ctx.fillText('슥 드래그하여 구역을 만들어보세요!', boxX + boxW/2, boxY + boxH/2 + 45);
+            ctx.fillStyle = '#1a1a18'; ctx.font = 'bold 22px sans-serif'; ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            ctx.fillStyle = '#9b9890'; ctx.font = '20px sans-serif';
+            ctx.fillText('* 오른쪽 아래 \'읽기 전용\'을 눌러 편집 모드로 진입', boxX + boxW/2, boxY + boxH/2 + 0);
+            ctx.fillText('* 사진 등록 하기를 눌러 사진 추가', boxX + boxW/2, boxY + boxH/2 + 30);
+            ctx.fillText('* 슥 드래그하여 구역을 만들어보세요!', boxX + boxW/2, boxY + boxH/2 + 60);
         }
         const countEl = document.getElementById('count-' + data.id); if (countEl) countEl.innerText = zones.length;
 
@@ -1104,17 +1125,48 @@
             alert("PDF 생성 중 문제가 발생했습니다.");
         }
     }
+
+    // 초기 실행 로직 (읽기 전용 상태로 시작)
     window.onload = () => {
         isEditMode = false;
-        const btn = document.getElementById('mainModeBtn'), icon = document.getElementById('modeIcon'), undoBtn = document.getElementById('undoBtn'), overlay = document.getElementById('editOverlay'), detailBtn = document.getElementById('detailToggleBtn');
-        if (btn) btn.classList.add('view-mode'); if (icon) icon.className = 'ti ti-lock'; if (undoBtn) undoBtn.style.display = "none"; if (overlay) overlay.style.display = 'none';
-        if (detailBtn) { detailBtn.style.background = 'var(--charcoal)'; detailBtn.style.color = 'var(--ivory-text)'; detailBtn.style.borderColor = 'var(--charcoal)'; }
+
+        const btn = document.getElementById('mainModeBtn'),
+              icon = document.getElementById('modeIcon'),
+              modeText = document.getElementById('modeText'),
+              undoBtn = document.getElementById('undoBtn'),
+              overlay = document.getElementById('editOverlay'),
+              detailBtn = document.getElementById('detailToggleBtn');
+
+        if (btn) btn.classList.add('view-mode');
+        if (icon) icon.className = 'ti ti-eye';
+        if (modeText) modeText.innerText = '읽기 전용';
+        if (undoBtn) undoBtn.style.display = "none";
+        if (overlay) overlay.style.display = 'none';
+
+        if (detailBtn) {
+            detailBtn.style.background = 'var(--charcoal)';
+            detailBtn.style.color = 'var(--ivory-text)';
+            detailBtn.style.borderColor = 'var(--charcoal)';
+        }
 
         let saved = null;
         try { saved = JSON.parse(safeStorage.getItem('savedSystemData')); } catch (e) { saved = null; }
 
-        if (saved && saved.length > 0) { saved.forEach(s => { const img = new Image(); img.onload = () => { createNewCanvasElement({ img, zones: s.zones, id: s.id, title: s.title }); }; img.onerror = () => { createNewCanvasElement({ img: null, zones: s.zones, id: s.id, title: s.title }); }; img.src = s.imgData; }); }
-        else { const sample = { img: null, id: "dummy_root", title: "#1", zones: [{ x: 70, y: 120, w: 100, h: 220, name: "A구역", items: baseItems.slice(0,2).map(name => ({ name, comment: "상단 첫번째 칸" })) }] }; createNewCanvasElement(sample); }
+        if (saved && saved.length > 0) {
+            saved.forEach(s => {
+                const img = new Image();
+                img.onload = () => { createNewCanvasElement({ img, zones: s.zones, id: s.id, title: s.title }); };
+                img.onerror = () => { createNewCanvasElement({ img: null, zones: s.zones, id: s.id, title: s.title }); };
+                img.src = s.imgData;
+            });
+        }
+        else {
+            const sample = {
+                img: null, id: "dummy_root", title: "#1",
+                zones: [{ x: 70, y: 120, w: 650, h: 260, name: "", items: baseItems.slice(0,0).map(name => ({ name, comment: "상단 첫번째 칸" })) }]
+            };
+            createNewCanvasElement(sample);
+        }
     };
 </script>
 </body>
