@@ -1297,7 +1297,7 @@
     }
 
     document.addEventListener('click', (e) => { const searchBox = document.getElementById('searchBox'), display = document.getElementById('searchResultDisplay'); if (searchBox && display && e.target !== searchBox && !display.contains(e.target)) { display.style.display = 'none'; } });
-    const searchBoxEl = document.getElementById('searchBox'); if (searchBoxEl) { searchBoxEl.addEventListener('focus', () => { if (searchBoxEl.value.trim() !== "") { document.getElementById('searchResultDisplay').style.display = 'block'; } }); }
+    const searchBoxEl = document.getElementById('searchBox'); if (searchBoxEl) { searchBoxEl.addEventListener('focus', () => { activateHeroSearch(); if (searchBoxEl.value.trim() !== "") { document.getElementById('searchResultDisplay').style.display = 'block'; } }); }
 
     function renameImage(dataId) { const data = imageList.find(d => d.id == dataId); const newName = prompt("사진 이름을 입력하세요:", data.title); if (newName) { data.title = newName; const titleEl = document.getElementById(`title-${data.id}`); if (titleEl) titleEl.innerHTML = `${newName}`; saveData(); } }
     function deleteImage(dataId) { if (confirm("이 사진과 포함된 모든 구역을 삭제하시겠습니까?")) { if (activeData && activeData.id == dataId) { activeData = null; activeZone = null; showSearchArrow = false; } imageList = imageList.filter(d => d.id != dataId); saveData(); document.getElementById('canvasList').innerHTML = ""; if (imageList.length === 0) { document.getElementById('emptyGuide').style.display = 'block'; } else { imageList.forEach(data => createNewCanvasElement(data)); } } }
