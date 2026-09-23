@@ -1094,7 +1094,7 @@
         requestAnimationFrame(() => tickSearchFlyAnim(seq));
     }
 
-    function drawSearchFlyOverlay(ctx, anim) {
+    function drawSearchFlyOverlay(ctx, anim, canvas) {
         const now = performance.now();
         if (anim.blinkStart === null) {
             // 날아와서 좁혀지는 구간 (ease-out)
@@ -1104,12 +1104,24 @@
             const y = anim.from.y + (anim.to.y - anim.from.y) * e;
             const w = anim.from.w + (anim.to.w - anim.from.w) * e;
             const h = anim.from.h + (anim.to.h - anim.from.h) * e;
+
+            // 사각형이 지나간(좁혀지며 벗어난) 자리는 배경색으로 덮어서
+            // 스포트라이트가 좁혀지듯 결과 구역만 남기고 강조한다.
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(0, 0, canvas.width, canvas.height);
+            ctx.rect(x, y, w, h);
+            ctx.fillStyle = '#f8f6f1';
+            ctx.fill('evenodd');
+            ctx.restore();
+
             ctx.save();
             ctx.strokeStyle = `rgba(196, 68, 68, ${0.3 + 0.7 * e})`;
             ctx.lineWidth = 4;
             ctx.strokeRect(x, y, w, h);
             ctx.restore();
         } else {
+            // 깜빡이는 구간에서는 스포트라이트를 풀고 전체 이미지를 다시 보여준다.
             // 안착 후 깜빡이는 구간
             const blinkElapsed = now - anim.blinkStart;
             const on = Math.floor(blinkElapsed / anim.blinkInterval) % 2 === 0;
@@ -1157,7 +1169,7 @@
             if (z === activeZone && showSearchArrow) { ctx.fillStyle = '#c44444'; ctx.font = 'bold 32px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('▼', z.x + z.w / 2, z.y - 20 - bounce); }
         });
 
-        if (searchFlyAnim && searchFlyAnim.dataId === data.id) { drawSearchFlyOverlay(ctx, searchFlyAnim); }
+        if (searchFlyAnim && searchFlyAnim.dataId === data.id) { drawSearchFlyOverlay(ctx, searchFlyAnim, canvas); }
 
         if (holdingItem && activeData === data) {
             ctx.save(); ctx.fillStyle = '#2d6a4f'; ctx.strokeStyle = '#52b788'; ctx.lineWidth = 1.5;
