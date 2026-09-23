@@ -349,6 +349,10 @@
         </div>
     </div>
     <div id="itemList" style="max-height: 280px; overflow-y: auto; padding-right: 4px;"></div>
+    <button id="voiceItemBtn" onclick="startVoiceItemEntry()" class="btn-base btn-xs" style="width: 100%; margin-top: 12px; background: var(--bg); border: 1px dashed var(--accent2); color: var(--accent); height: 34px;">
+        🎤 말로 여러 품목 한번에 등록 (예: "빨대, 냅킨, 원두")
+    </button>
+    <div id="voiceItemStatus" style="font-size: 11px; color: var(--text2); text-align: center; margin-top: 6px; min-height: 14px;"></div>
     <div style="margin-top:16px; border-top:1px solid var(--border); padding-top:12px; display: flex; gap: 6px;">
         <input type="text" id="newItemInput" placeholder="새 품목 이름 직접 입력" style="flex: 1;">
         <button onclick="addNewItem()" class="btn-base btn-xs" style="height: 34px; padding: 0 12px;">추가</button>
@@ -1270,6 +1274,72 @@
         try { safeStorage.setItem('baseItems', JSON.stringify(baseItems)); } catch(e) {}
     }
     function addNewItem() { const input = document.getElementById('newItemInput'); const val = input.value.trim(); if (val && !baseItems.includes(val)) { baseItems.push(val); input.value = ''; saveData(); openModal(activeZone); } }
+
+    // ────────────────────────────────────────────────────────────
+    // 🎤 음성으로 여러 품목을 한 번에 등록: "빨대, 냅킨, 원두"처럼 말하면
+    // 쉼표/공백 단위로 나눠서 해당 구역의 체크박스를 한 번에 체크해준다.
+    // ────────────────────────────────────────────────────────────
+    const VOICE_LIST_CONNECTORS = new Set(['그리고', '하고', '이랑', '랑', '이나', '나', '와', '과']);
+
+    function parseVoiceItemList(text) {
+        return text
+            .split(/[,，、]+/)                              // 1차: 쉼표류로 분리
+            .flatMap(chunk => chunk.trim().split(/\s+/))    // 2차: 공백으로 추가 분리
+            .map(tok => tok.trim())
+            // 토큰 전체가 접속사와 "정확히 일치"할 때만 제거 — 단어 중간의 같은 글자는 건드리지 않는다.
+            .filter(tok => tok && !VOICE_LIST_CONNECTORS.has(tok));
+    }
+
+    function startVoiceItemEntry() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const statusEl = document.getElementById('voiceItemStatus');
+        const btn = document.getElementById('voiceItemBtn');
+        if (!SpeechRecognition) { alert('음성 인식을 지원하지 않는 브라우저입니다.'); return; }
+        if (!activeZone) return;
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'ko-KR';
+
+        recognition.onstart = () => {
+            if (btn) { btn.classList.add('listening'); btn.disabled = true; }
+            if (statusEl) statusEl.textContent = '🎙️ 듣고 있습니다... (품목을 쉬어가며 말해주세요)';
+        };
+
+        recognition.onspeechend = () => { recognition.stop(); };
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript.trim();
+            const names = parseVoiceItemList(transcript);
+            if (names.length === 0) { if (statusEl) statusEl.textContent = '인식된 품목이 없습니다.'; return; }
+
+            names.forEach(name => { if (!baseItems.includes(name)) baseItems.push(name); });
+            saveData();
+            openModal(activeZone); // 새 품목이 추가됐을 수 있으므로 체크박스 목록을 다시 그림
+
+            let checkedCount = 0;
+            names.forEach(name => {
+                const cb = Array.from(document.querySelectorAll('.cb')).find(el => el.value === name);
+                if (cb && !cb.checked) { cb.checked = true; toggleCommentField(cb); checkedCount++; }
+            });
+
+            const statusElAfter = document.getElementById('voiceItemStatus'); // openModal이 DOM을 새로 그렸으니 다시 조회
+            if (statusElAfter) statusElAfter.textContent = `✅ "${names.join(', ')}" 체크 완료 (${checkedCount}개) — 확인 후 저장을 눌러주세요.`;
+        };
+
+        recognition.onerror = () => {
+            const btnAfter = document.getElementById('voiceItemBtn');
+            if (btnAfter) { btnAfter.classList.remove('listening'); btnAfter.disabled = false; }
+            const s = document.getElementById('voiceItemStatus');
+            if (s) s.textContent = '❌ 음성 인식에 실패했습니다. 다시 시도해주세요.';
+        };
+
+        recognition.onend = () => {
+            const btnAfter = document.getElementById('voiceItemBtn');
+            if (btnAfter) { btnAfter.classList.remove('listening'); btnAfter.disabled = false; }
+        };
+
+        recognition.start();
+    }
     function applyIndustryTemplate() {
         const selectedType = document.getElementById('industrySelect').value;
         const templates = { cafe: ["빨대", "냅킨", "시럽", "컵홀더", "우유", "원두", "캐리어", "뚜껑"], pharmacy: ["전문약(처방)", "일반약(비급여)", "영양제/건기식", "투약병/시럽병", "조제봉투", "연고류", "의약외품", "파스류"], hospital: ["주사기/바늘", "거즈/붕대", "수액세트", "알코올솜", "반창고", "소독액", "위생장갑", "트레이"], restaurant: ["물티슈", "일회용 앞치마", "부탄가스", "불판", "가위/집게", "수저통", "술잔", "호출벨"], clothing: ["옷걸이", "마네킹", "스팀다리미", "테이프클리너", "쇼핑백", "가격택", "도난방지택", "페이스커버"], mart: ["나무젓가락", "빨대/스푼", "영수증롤", "종량제봉투", "소독제", "위생장갑", "가격라벨지", "박스테이프"] };
