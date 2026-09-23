@@ -1054,9 +1054,10 @@
     function startSearchFlyAnimation(data, zone) {
         if (!data || !data.canvas || !zone) return;
         const canvas = data.canvas;
-        const fromSize = Math.min(canvas.width, canvas.height) * 1.5;
-        const aspect = (zone.h / zone.w) || 1;
-        const fromW = fromSize, fromH = fromSize * aspect;
+        // 시작 사각형은 가로/세로 각각 캔버스 크기에 맞춰(살짝 여백만 두고) 잡는다.
+        // 이렇게 해야 두 변 모두 처음부터 화면 안에서 보이며 함께 좁혀져 원근감이 자연스럽다.
+        // (한쪽만 목표 비율로 맞추면 반대쪽 변이 캔버스 밖에서 시작해, 그쪽만 뒤늦게 줄어드는 것처럼 보인다.)
+        const fromW = canvas.width * 0.92, fromH = canvas.height * 0.85;
         const cx = canvas.width / 2, cy = canvas.height / 2;
 
         const seq = ++searchFlyAnimSeq;
