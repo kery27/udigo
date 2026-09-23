@@ -1044,6 +1044,85 @@
         lines.forEach((line, idx) => { ctx.fillText(line, boxX + padding, boxY + padding + idx * (bubbleFontSize + lineSpacing)); });
     }
 
+    // ────────────────────────────────────────────────────────────
+    // 🎯 검색 결과 선택 시: 멀리서 날아와 좁혀지며 구역에 안착 → 잠시 깜빡임
+    // ────────────────────────────────────────────────────────────
+    let searchFlyAnim = null, searchFlyAnimSeq = 0;
+
+    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+    function startSearchFlyAnimation(data, zone) {
+        if (!data || !data.canvas || !zone) return;
+        const canvas = data.canvas;
+        const fromSize = Math.min(canvas.width, canvas.height) * 1.5;
+        const aspect = (zone.h / zone.w) || 1;
+        const fromW = fromSize, fromH = fromSize * aspect;
+        const cx = canvas.width / 2, cy = canvas.height / 2;
+
+        const seq = ++searchFlyAnimSeq;
+        searchFlyAnim = {
+            seq, dataId: data.id, zone,
+            from: { x: cx - fromW / 2, y: cy - fromH / 2, w: fromW, h: fromH },
+            to: { x: zone.x, y: zone.y, w: zone.w, h: zone.h },
+            startTime: performance.now(),
+            flyDuration: 550,
+            blinkStart: null,
+            maxBlinks: 5,       // 총 깜빡임 5회(켜짐+꺼짐) 후 정지 — 배터리 고려해 무한 반복은 지양
+            blinkInterval: 260
+        };
+        requestAnimationFrame(() => tickSearchFlyAnim(seq));
+    }
+
+    function tickSearchFlyAnim(seq) {
+        if (!searchFlyAnim || searchFlyAnim.seq !== seq) return; // 새 애니메이션이 시작됐으면 이전 루프는 스스로 종료
+        const data = imageList.find(d => d.id === searchFlyAnim.dataId);
+        if (!data) { searchFlyAnim = null; return; }
+        render(data);
+
+        const anim = searchFlyAnim, now = performance.now();
+        if (anim.blinkStart === null) {
+            if (now - anim.startTime >= anim.flyDuration) anim.blinkStart = now;
+            requestAnimationFrame(() => tickSearchFlyAnim(seq));
+            return;
+        }
+        const blinkElapsed = now - anim.blinkStart;
+        if (Math.floor(blinkElapsed / anim.blinkInterval) >= anim.maxBlinks * 2) {
+            searchFlyAnim = null;
+            render(data); // 깜빡임 종료 후 마지막 프레임을 한 번 더 정리해서 그림
+            return;
+        }
+        requestAnimationFrame(() => tickSearchFlyAnim(seq));
+    }
+
+    function drawSearchFlyOverlay(ctx, anim) {
+        const now = performance.now();
+        if (anim.blinkStart === null) {
+            // 날아와서 좁혀지는 구간 (ease-out)
+            const t = Math.min(1, (now - anim.startTime) / anim.flyDuration);
+            const e = easeOutCubic(t);
+            const x = anim.from.x + (anim.to.x - anim.from.x) * e;
+            const y = anim.from.y + (anim.to.y - anim.from.y) * e;
+            const w = anim.from.w + (anim.to.w - anim.from.w) * e;
+            const h = anim.from.h + (anim.to.h - anim.from.h) * e;
+            ctx.save();
+            ctx.strokeStyle = `rgba(196, 68, 68, ${0.3 + 0.7 * e})`;
+            ctx.lineWidth = 4;
+            ctx.strokeRect(x, y, w, h);
+            ctx.restore();
+        } else {
+            // 안착 후 깜빡이는 구간
+            const blinkElapsed = now - anim.blinkStart;
+            const on = Math.floor(blinkElapsed / anim.blinkInterval) % 2 === 0;
+            if (on) {
+                ctx.save();
+                ctx.strokeStyle = '#c44444';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(anim.to.x, anim.to.y, anim.to.w, anim.to.h);
+                ctx.restore();
+            }
+        }
+    }
+
     function render(data, bounce = 0) {
         if (!data || !data.ctx) return; const { ctx, canvas, img, zones } = data; ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (img && img.src) { ctx.drawImage(img, 0, 0, canvas.width, canvas.height); } else {
@@ -1078,6 +1157,8 @@
             if (z === activeZone && showSearchArrow) { ctx.fillStyle = '#c44444'; ctx.font = 'bold 32px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('▼', z.x + z.w / 2, z.y - 20 - bounce); }
         });
 
+        if (searchFlyAnim && searchFlyAnim.dataId === data.id) { drawSearchFlyOverlay(ctx, searchFlyAnim); }
+
         if (holdingItem && activeData === data) {
             ctx.save(); ctx.fillStyle = '#2d6a4f'; ctx.strokeStyle = '#52b788'; ctx.lineWidth = 1.5;
             let dragFontSize = Math.max(22, Math.round(bubbleFontSize * 1.3)); ctx.font = `bold ${dragFontSize}px sans-serif`;
@@ -1105,7 +1186,7 @@
     function toggleCommentField(cb) { cb.parentElement.nextElementSibling.style.display = cb.checked ? 'block' : 'none'; }
     function saveZone() { saveHistory(); activeZone.name = document.getElementById('zoneNameInput').value; activeZone.items = []; document.querySelectorAll('.cb:checked').forEach(cb => { activeZone.items.push({ name: cb.value, comment: cb.parentElement.nextElementSibling.value || "" }); }); if (activeData.id !== "dummy_root") saveData(); closeModal(); showSearchArrow = true; render(activeData); }
     function closeModal() { document.getElementById('modal').style.display = 'none'; showSearchArrow = true; if (activeData) render(activeData); }
-    function selectZone(dataId, index) { deactivateHeroSearch(); activeData = imageList.find(d => d.id == dataId); activeZone = activeData.zones[index]; showSearchArrow = true; expandZoneList(dataId); if (activeData && activeData.canvas) { activeData.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' }); } imageList.forEach(data => render(data)); }
+    function selectZone(dataId, index) { deactivateHeroSearch(); activeData = imageList.find(d => d.id == dataId); activeZone = activeData.zones[index]; showSearchArrow = true; expandZoneList(dataId); if (activeData && activeData.canvas) { activeData.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' }); } imageList.forEach(data => render(data)); startSearchFlyAnimation(activeData, activeZone); }
     function deleteZone() { if (!confirm("이 구역을 정말 삭제하시겠습니까?")) return; saveHistory(); activeData.zones = activeData.zones.filter(z => z !== activeZone); if (activeData.id !== "dummy_root") saveData(); document.getElementById('modal').style.display = 'none'; activeZone = null; showSearchArrow = false; render(activeData); }
 
     function saveData() {
