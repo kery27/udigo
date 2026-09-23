@@ -1065,7 +1065,7 @@
             from: { x: cx - fromW / 2, y: cy - fromH / 2, w: fromW, h: fromH },
             to: { x: zone.x, y: zone.y, w: zone.w, h: zone.h },
             startTime: performance.now(),
-            flyDuration: 550,
+            flyDuration: 820,
             blinkStart: null,
             maxBlinks: 5,       // 총 깜빡임 5회(켜짐+꺼짐) 후 정지 — 배터리 고려해 무한 반복은 지양
             blinkInterval: 260
@@ -1186,7 +1186,34 @@
     function toggleCommentField(cb) { cb.parentElement.nextElementSibling.style.display = cb.checked ? 'block' : 'none'; }
     function saveZone() { saveHistory(); activeZone.name = document.getElementById('zoneNameInput').value; activeZone.items = []; document.querySelectorAll('.cb:checked').forEach(cb => { activeZone.items.push({ name: cb.value, comment: cb.parentElement.nextElementSibling.value || "" }); }); if (activeData.id !== "dummy_root") saveData(); closeModal(); showSearchArrow = true; render(activeData); }
     function closeModal() { document.getElementById('modal').style.display = 'none'; showSearchArrow = true; if (activeData) render(activeData); }
-    function selectZone(dataId, index) { deactivateHeroSearch(); activeData = imageList.find(d => d.id == dataId); activeZone = activeData.zones[index]; showSearchArrow = true; expandZoneList(dataId); if (activeData && activeData.canvas) { activeData.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' }); } imageList.forEach(data => render(data)); startSearchFlyAnimation(activeData, activeZone); }
+    function selectZone(dataId, index) {
+        deactivateHeroSearch();
+        activeData = imageList.find(d => d.id == dataId); activeZone = activeData.zones[index];
+        showSearchArrow = true; expandZoneList(dataId);
+        imageList.forEach(data => render(data));
+
+        // 사진이 여러 장이라 스크롤이 필요한 경우, 스크롤이 실제로 멈춘 뒤에
+        // 애니메이션을 시작해야 "날아오는" 연출이 화면이 움직이는 도중에 겹쳐 보이지 않는다.
+        if (activeData && activeData.canvas) {
+            const canvas = activeData.canvas;
+            canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            let lastTop = canvas.getBoundingClientRect().top, stableFrames = 0;
+            const settleStart = performance.now(), maxWait = 900;
+            const waitForScrollSettle = () => {
+                const top = canvas.getBoundingClientRect().top;
+                stableFrames = Math.abs(top - lastTop) < 0.5 ? stableFrames + 1 : 0;
+                lastTop = top;
+                if (stableFrames >= 3 || performance.now() - settleStart >= maxWait) {
+                    startSearchFlyAnimation(activeData, activeZone);
+                    return;
+                }
+                requestAnimationFrame(waitForScrollSettle);
+            };
+            requestAnimationFrame(waitForScrollSettle);
+        } else {
+            startSearchFlyAnimation(activeData, activeZone);
+        }
+    }
     function deleteZone() { if (!confirm("이 구역을 정말 삭제하시겠습니까?")) return; saveHistory(); activeData.zones = activeData.zones.filter(z => z !== activeZone); if (activeData.id !== "dummy_root") saveData(); document.getElementById('modal').style.display = 'none'; activeZone = null; showSearchArrow = false; render(activeData); }
 
     function saveData() {
