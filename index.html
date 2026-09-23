@@ -262,11 +262,34 @@
             </ul>
         </ul>
     </div>
+    <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); margin-bottom: 12px; cursor: pointer; user-select: none;">
+        <input type="checkbox" id="hideGuideCheckbox" style="width: auto; accent-color: var(--accent);">
+        24시간 동안 다시 보지 않기
+    </label>
     <div style="display: flex; gap: 8px; width: 100%;">
-        <button onclick="document.getElementById('guideModal').style.display='none'; openVideoGuideModal();" class="btn-base" style="background: white; border: 1px solid var(--accent); color: var(--accent); flex: 1;"><i class="ti ti-video" style="margin-right: 4px; font-size: 16px;"></i> 영상보기</button>
-        <button onclick="document.getElementById('guideModal').style.display='none'" class="btn-base btn-primary" style="flex: 1.5;">확인했습니다, 시작하기!</button>
+        <button onclick="closeGuideModal(); openVideoGuideModal();" class="btn-base" style="background: white; border: 1px solid var(--accent); color: var(--accent); flex: 1;"><i class="ti ti-video" style="margin-right: 4px; font-size: 16px;"></i> 영상보기</button>
+        <button onclick="closeGuideModal();" class="btn-base btn-primary" style="flex: 1.5;">확인했습니다, 시작하기!</button>
     </div>
 </div>
+<script>
+    // 체크박스를 눌러 닫으면 24시간 동안 안내창을 다시 띄우지 않는다.
+    function closeGuideModal() {
+        document.getElementById('guideModal').style.display = 'none';
+        const cb = document.getElementById('hideGuideCheckbox');
+        if (cb && cb.checked) {
+            try { localStorage.setItem('guideHiddenUntil', String(Date.now() + 24 * 60 * 60 * 1000)); } catch (e) {}
+        }
+    }
+    // 페인트 전에 즉시 판단해서, 아직 유효한 "다시 보지 않기" 기간이면 깜빡임 없이 바로 숨긴다.
+    (function () {
+        try {
+            const until = parseInt(localStorage.getItem('guideHiddenUntil') || '0', 10);
+            if (until && Date.now() < until) {
+                document.write('<style>#guideModal{display:none !important;}</style>');
+            }
+        } catch (e) {}
+    })();
+</script>
 
 <div class="search-bar">
     <div class="app-brand" style="display: flex; align-items: center;">
@@ -1088,8 +1111,10 @@
         }
         const blinkElapsed = now - anim.blinkStart;
         if (Math.floor(blinkElapsed / anim.blinkInterval) >= anim.maxBlinks * 2) {
-            searchFlyAnim = null;
-            render(data); // 깜빡임 종료 후 마지막 프레임을 한 번 더 정리해서 그림
+            // 깜빡임을 마치면 애니메이션 루프는 멈추되, 테두리는 계속 유지해서 그린다.
+            // (별도 requestAnimationFrame 없이도 다른 동작으로 render()가 다시 호출될 때마다 그대로 그려짐)
+            anim.done = true;
+            render(data);
             return;
         }
         requestAnimationFrame(() => tickSearchFlyAnim(seq));
@@ -1121,9 +1146,15 @@
             ctx.lineWidth = 4;
             ctx.strokeRect(x, y, w, h);
             ctx.restore();
+        } else if (anim.done) {
+            // 깜빡임이 끝난 뒤에는 테두리를 계속 켜둔 채로 유지한다.
+            ctx.save();
+            ctx.strokeStyle = '#c44444';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(anim.to.x, anim.to.y, anim.to.w, anim.to.h);
+            ctx.restore();
         } else {
-            // 깜빡이는 구간에서는 스포트라이트를 풀고 전체 이미지를 다시 보여준다.
-            // 안착 후 깜빡이는 구간
+            // 깜빡이는 구간: 스포트라이트를 풀고 전체 이미지를 보여주면서 테두리 색을 켰다 껐다 반복한다.
             const blinkElapsed = now - anim.blinkStart;
             const on = Math.floor(blinkElapsed / anim.blinkInterval) % 2 === 0;
             if (on) {
