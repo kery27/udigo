@@ -419,11 +419,13 @@
         </div>
     </div>
     <div id="itemList" style="max-height: 280px; overflow-y: auto; padding-right: 4px;"></div>
-    <button id="voiceItemBtn" onclick="startVoiceItemEntry()" class="btn-base btn-xs" style="width: 100%; margin-top: 12px; background: var(--bg); border: 1px dashed var(--accent2); color: var(--accent); height: 34px;">
-        🎤 말로 여러 품목 한번에 등록 (예: "빨대, 냅킨, 원두")
-    </button>
-    <div id="voiceItemStatus" style="font-size: 11px; color: var(--text2); text-align: center; margin-top: 6px; min-height: 14px;"></div>
-    <div style="margin-top:16px; border-top:1px solid var(--border); padding-top:12px; display: flex; gap: 6px;">
+    <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 4px;">
+        <button id="voiceItemBtn" onclick="startVoiceItemEntry()" class="btn-base btn-xs" style="width: 100%; background: var(--bg); border: 1px dashed var(--accent2); color: var(--accent); height: 34px;">
+            <i class="ti ti-microphone"></i> 말로 여러 품목 한번에 등록 (예: "빨대, 냅킨, 원두")
+        </button>
+        <div id="voiceItemStatus" style="font-size: 11px; color: var(--text2); text-align: center; min-height: 14px;"></div>
+    </div>
+    <div style="margin-top:8px; border-top:1px solid var(--border); padding-top:10px; display: flex; gap: 6px;">
         <input type="text" id="newItemInput" placeholder="새 품목 이름 직접 입력" style="flex: 1;">
         <button onclick="addNewItem()" class="btn-base btn-xs" style="height: 34px; padding: 0 12px;">추가</button>
     </div>
