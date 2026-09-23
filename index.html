@@ -91,6 +91,9 @@
             font-size: 14px; color: var(--text); outline: none;
         }
         .search-input-wrap input::placeholder { color: var(--text3); }
+        /* 전역 input:focus 규칙(각진 box-shadow)이 각진 모서리로 다시 끼어드는 것을 차단.
+           포커스 표시는 .search-input-wrap:focus-within의 알약 모양 글로우 하나로만 보여준다. */
+        .search-input-wrap input[type="text"]:focus { border: none; background: transparent; box-shadow: none; }
 
         .search-dropdown {
             display: none; position: absolute; top: calc(100% + 8px); right: 20px;
