@@ -83,6 +83,11 @@
         }
         .search-dropdown-item:hover { background: #e8f4ee; }
         .search-dropdown-item:last-child { border-bottom: none; }
+        .search-dropdown-item mark { background: var(--search-hl); color: inherit; border-radius: 3px; padding: 0 1px; }
+        .search-thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border); flex-shrink: 0; background: var(--bg); }
+        .search-result-title { font-weight: 600; font-size: 13px; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .search-result-sub { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .search-result-sub2 { font-size: 11px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         #micBtn {
             margin-left: auto; width: 32px; height: 32px; background: none; border: none; cursor: pointer;
@@ -1077,16 +1082,155 @@
     function exportSystemData() { const packageData = { note: "백업", savedSystemData: JSON.parse(safeStorage.getItem('savedSystemData') || "[]"), baseItems: JSON.parse(safeStorage.getItem('baseItems') || "[]") }; const downloadLink = document.createElement('a'); downloadLink.setAttribute("href", "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(packageData))); downloadLink.setAttribute("download", `매장위치지도_백업_${new Date().toISOString().slice(0,10)}.json`); downloadLink.click(); }
     function importSystemData(input) { if (!input.files[0]) return; const reader = new FileReader(); reader.onload = function(e) { try { const imported = JSON.parse(e.target.result); if (imported.savedSystemData && imported.baseItems && confirm("백업 파일로 전체 복구하시겠습니까?")) { safeStorage.setItem('savedSystemData', JSON.stringify(imported.savedSystemData)); safeStorage.setItem('baseItems', JSON.stringify(imported.baseItems)); location.reload(); } } catch (err) { alert("올바른 형식이 아닙니다."); } }; reader.readAsText(input.files[0]); }
 
+    // ────────────────────────────────────────────────────────────
+    // 🔍 검색 강화: 부분/오타 허용 매칭 + 코멘트/사진제목 검색 + 하이라이트/썸네일
+    // ────────────────────────────────────────────────────────────
+
+    function normalizeForSearch(str) { return (str || '').toLowerCase().replace(/\s+/g, ''); }
+
+    // 편집거리(Levenshtein Distance): 오타 허용 판단에 사용
+    function levenshtein(a, b) {
+        const m = a.length, n = b.length;
+        if (m === 0) return n;
+        if (n === 0) return m;
+        const dp = [];
+        for (let i = 0; i <= m; i++) dp.push(new Array(n + 1).fill(0));
+        for (let i = 0; i <= m; i++) dp[i][0] = i;
+        for (let j = 0; j <= n; j++) dp[0][j] = j;
+        for (let i = 1; i <= m; i++) {
+            for (let j = 1; j <= n; j++) {
+                dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+            }
+        }
+        return dp[m][n];
+    }
+
+    // 물건 이름 매칭: 부분일치(포함) 우선, 없으면 오타를 감안한 유사매칭
+    function matchItemName(query, name) {
+        const q = normalizeForSearch(query), n = normalizeForSearch(name);
+        if (!q || !n) return null;
+        if (n.includes(q)) return { type: 'partial' };
+        if (q.length <= 1) return null; // 한 글자 검색은 오타 허용 생략 (과매칭 방지)
+        const threshold = q.length <= 3 ? 1 : q.length <= 6 ? 2 : 3;
+        const dist = levenshtein(q, n);
+        if (dist <= threshold) return { type: 'fuzzy', distance: dist };
+        return null;
+    }
+
+    function includesText(query, text) {
+        const q = normalizeForSearch(query), t = normalizeForSearch(text);
+        return !!q && !!t && t.includes(q);
+    }
+
+    function escapeHtml(str) {
+        return String(str == null ? '' : str).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+
+    // 검색어와 일치하는 구간을 <mark>로 강조
+    function highlight(text, query) {
+        const safeText = String(text == null ? '' : text);
+        const escaped = escapeHtml(safeText);
+        const q = (query || '').trim();
+        if (!q) return escaped;
+        const idx = safeText.toLowerCase().indexOf(q.toLowerCase());
+        if (idx === -1) return escaped;
+        return escapeHtml(safeText.slice(0, idx)) + '<mark>' + escapeHtml(safeText.slice(idx, idx + q.length)) + '</mark>' + escapeHtml(safeText.slice(idx + q.length));
+    }
+
+    // 구역 영역을 잘라낸 작은 썸네일 이미지 생성 (검색 결과에서 위치를 한눈에 보여주기 위함)
+    function getZoneThumbnail(data, z) {
+        if (!data.canvas) return null;
+        try {
+            const size = 44;
+            const sx = Math.max(0, Math.min(z.x, data.canvas.width - 1));
+            const sy = Math.max(0, Math.min(z.y, data.canvas.height - 1));
+            const sw = Math.max(1, Math.min(z.w, data.canvas.width - sx));
+            const sh = Math.max(1, Math.min(z.h, data.canvas.height - sy));
+            const tmp = document.createElement('canvas'); tmp.width = size; tmp.height = size;
+            tmp.getContext('2d').drawImage(data.canvas, sx, sy, sw, sh, 0, 0, size, size);
+            return tmp.toDataURL('image/jpeg', 0.7);
+        } catch (e) { return null; }
+    }
+
+    // 결과 정렬 우선순위: 이름/구역 부분일치 > 코멘트 일치 > 사진제목 일치 > 오타 유사매칭
+    function rankOf(field, type) {
+        if (field === 'item' && type === 'partial') return 0;
+        if (field === 'zone') return 0.5;
+        if (field === 'comment') return 1;
+        if (field === 'title') return 2;
+        return 3; // fuzzy
+    }
+
+    function findSearchMatches(query) {
+        const matches = [];
+        imageList.forEach(data => {
+            data.zones.forEach((z, idx) => {
+                let best = null;
+
+                z.items.forEach(it => {
+                    const m = matchItemName(query, it.name);
+                    if (m && (!best || rankOf('item', m.type) < rankOf(best.field, best.type) || (m.type === best.type && (m.distance || 0) < (best.distance || 0)))) {
+                        best = { field: 'item', type: m.type, distance: m.distance || 0, item: it };
+                    }
+                    if ((!best || rankOf('comment') < rankOf(best.field, best.type)) && it.comment && includesText(query, it.comment)) {
+                        best = { field: 'comment', type: 'partial', distance: 0, item: it };
+                    }
+                });
+
+                if ((!best || rankOf('zone') < rankOf(best.field, best.type)) && includesText(query, z.name)) {
+                    best = { field: 'zone', type: 'partial', distance: 0, item: null };
+                }
+                if (!best && includesText(query, data.title)) {
+                    best = { field: 'title', type: 'partial', distance: 0, item: null };
+                }
+
+                if (best) matches.push({ data, zone: z, index: idx, ...best });
+            });
+        });
+
+        matches.sort((a, b) => (rankOf(a.field, a.type) - rankOf(b.field, b.type)) || (a.distance - b.distance));
+        return matches;
+    }
+
+    function renderSearchResult(match, query) {
+        const { data, zone: z, index: idx, field, item, type } = match;
+        const thumb = getZoneThumbnail(data, z);
+
+        const zoneLine = field === 'zone' ? highlight(z.name, query) : escapeHtml(z.name);
+        let itemLine = '';
+        if (field === 'item') {
+            itemLine = type === 'partial' ? highlight(item.name, query) : escapeHtml(item.name) + ' <span style="color:var(--text3);">(비슷한 결과)</span>';
+        } else if (item) {
+            itemLine = escapeHtml(item.name);
+        }
+        const subLine = field === 'title' ? highlight(data.title, query) : escapeHtml(data.title);
+        const commentLine = field === 'comment' && item && item.comment ? ' · ' + highlight(item.comment, query) : '';
+
+        return `
+            <div class="search-dropdown-item" onclick="selectZone('${data.id}', ${idx}); document.getElementById('searchResultDisplay').style.display='none';">
+                ${thumb ? `<img src="${thumb}" class="search-thumb">` : `<div class="search-thumb"></div>`}
+                <div style="min-width:0;">
+                    <div class="search-result-title">${zoneLine}</div>
+                    ${itemLine ? `<div class="search-result-sub">${itemLine}</div>` : ''}
+                    <div class="search-result-sub2">${subLine}${commentLine}</div>
+                </div>
+            </div>`;
+    }
+
     function integratedSearch(autoTrigger = false) {
         const query = document.getElementById('searchBox').value.trim(), display = document.getElementById('searchResultDisplay');
-        activeZone = null; showSearchArrow = false; imageList.forEach(data => render(data)); let results = [], matched = [];
+        activeZone = null; showSearchArrow = false; imageList.forEach(data => render(data));
         if (!query) { display.style.display = "none"; display.innerHTML = ""; return; }
 
-        imageList.forEach(data => { data.zones.forEach((z, idx) => { if (z.items.some(i => i.name.includes(query))) { matched.push({ dataId: data.id, index: idx }); results.push(`<div class="search-dropdown-item" onclick="selectZone('${data.id}', ${idx}); document.getElementById('searchResultDisplay').style.display='none';"><div><div style="font-weight: 600; font-size: 13px; color: var(--accent);">${z.name}</div><div style="font-size: 11px; color: var(--text3);">${data.title}</div></div></div>`); } }); });
+        const matches = findSearchMatches(query);
 
-        if (results.length > 0) { display.innerHTML = `<div style="font-size: 11px; color: var(--text2); margin-bottom: 8px; font-weight: 600; padding: 0 4px;">검색 결과 (${results.length}건)</div>` + results.join(''); } else { display.innerHTML = `<div style="padding: 16px; text-align: center; font-size: 13px; color: var(--text3);">"${query}"에 대한 결과가 없습니다.</div>`; }
+        if (matches.length > 0) {
+            display.innerHTML = `<div style="font-size: 11px; color: var(--text2); margin-bottom: 8px; font-weight: 600; padding: 0 4px;">검색 결과 (${matches.length}건)</div>` + matches.map(m => renderSearchResult(m, query)).join('');
+        } else {
+            display.innerHTML = `<div style="padding: 16px; text-align: center; font-size: 13px; color: var(--text3);">"${escapeHtml(query)}"에 대한 결과가 없습니다.</div>`;
+        }
         display.style.display = 'block';
-        if (autoTrigger && matched.length === 1) { selectZone(matched[0].dataId, matched[0].index); display.style.display = 'none'; }
+        if (autoTrigger && matches.length === 1) { selectZone(matches[0].data.id, matches[0].index); display.style.display = 'none'; }
     }
 
     document.addEventListener('click', (e) => { const searchBox = document.getElementById('searchBox'), display = document.getElementById('searchResultDisplay'); if (searchBox && display && e.target !== searchBox && !display.contains(e.target)) { display.style.display = 'none'; } });
