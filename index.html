@@ -385,11 +385,14 @@
         }
     }
 
+    let _cachedApiKey = null; // 세션 중 API 키는 바뀌지 않으므로 최초 1회만 앱스크립트를 왕복하고 재사용
     async function getApiKey() {
+        if (_cachedApiKey) return _cachedApiKey;
         try {
             const res = await fetch("https://script.google.com/macros/s/AKfycbw7W1pUIvnPWDEosL6ZmIhfEbS8rgUVvaU_hfECUB2faBLR5Hte96f_-fDTE_fo-Rhv/exec");
             const data = await res.json();
-            return data.value;
+            _cachedApiKey = data.value;
+            return _cachedApiKey;
         } catch (e) { return null; }
     }
 
