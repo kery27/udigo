@@ -77,6 +77,39 @@
             .search-dropdown { width: calc(100% - 40px); left: 20px; right: 20px; }
         }
 
+        /* 🔎 모바일 "검색 우선" 모드: 저장된 데이터가 있는 상태로 접속하면
+           검색바를 화면 상단부에 크게 띄우고, 다른 곳을 누르면 원래 자리로 접힌다. */
+        #heroSearchBackdrop {
+            display: none; position: fixed; inset: 0;
+            background: rgba(26,26,24,0.35); z-index: 1050;
+        }
+        @media (max-width: 600px) {
+            body.hero-search-active #heroSearchBackdrop { display: block; }
+
+            .search-bar {
+                transition: top 0.35s cubic-bezier(0.4,0,0.2,1), transform 0.35s cubic-bezier(0.4,0,0.2,1),
+                            border-radius 0.35s ease, box-shadow 0.35s ease, padding 0.35s ease;
+            }
+            body.hero-search-active .search-bar {
+                position: fixed; top: 16vh; left: 5%; width: 90%;
+                flex-direction: column; align-items: stretch; gap: 10px;
+                padding: 22px 18px; border-radius: 20px; border: 1px solid var(--border);
+                box-shadow: 0 20px 50px rgba(0,0,0,0.25); z-index: 1060;
+            }
+            body.hero-search-active .app-brand { justify-content: center; font-size: 15px; }
+            body.hero-search-active .search-input-wrap { width: 100%; height: 52px; }
+            body.hero-search-active .search-input-wrap input { font-size: 16px; }
+            body.hero-search-active .search-dropdown {
+                position: static; width: 100%; max-width: none; margin-top: 8px;
+                box-shadow: none; border: none; max-height: 42vh;
+            }
+            .hero-search-hint {
+                display: none; text-align: center; font-size: 12px; color: var(--text3);
+                margin-top: 12px; user-select: none;
+            }
+            body.hero-search-active .hero-search-hint { display: block; }
+        }
+
         .search-dropdown-item {
             padding: 10px 12px; border-bottom: 1px solid var(--bg); cursor: pointer;
             border-radius: 8px; transition: background 0.2s; display: flex; align-items: center; gap: 10px;
@@ -251,7 +284,9 @@
         </button>
     </div>
     <div id="searchResultDisplay" class="search-dropdown"></div>
+    <div class="hero-search-hint">화면을 누르면 목록을 볼 수 있어요 ▾</div>
 </div>
+<div id="heroSearchBackdrop" onclick="deactivateHeroSearch()"></div>
 
 <div class="content-wrapper" id="report-container">
     <div id="emptyGuide">등록된 사진이 없습니다. 아래 버튼을 눌러 매장 사진을 추가해 주세요!</div>
@@ -1069,7 +1104,7 @@
     function toggleCommentField(cb) { cb.parentElement.nextElementSibling.style.display = cb.checked ? 'block' : 'none'; }
     function saveZone() { saveHistory(); activeZone.name = document.getElementById('zoneNameInput').value; activeZone.items = []; document.querySelectorAll('.cb:checked').forEach(cb => { activeZone.items.push({ name: cb.value, comment: cb.parentElement.nextElementSibling.value || "" }); }); if (activeData.id !== "dummy_root") saveData(); closeModal(); showSearchArrow = true; render(activeData); }
     function closeModal() { document.getElementById('modal').style.display = 'none'; showSearchArrow = true; if (activeData) render(activeData); }
-    function selectZone(dataId, index) { activeData = imageList.find(d => d.id == dataId); activeZone = activeData.zones[index]; showSearchArrow = true; expandZoneList(dataId); if (activeData && activeData.canvas) { activeData.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' }); } imageList.forEach(data => render(data)); }
+    function selectZone(dataId, index) { deactivateHeroSearch(); activeData = imageList.find(d => d.id == dataId); activeZone = activeData.zones[index]; showSearchArrow = true; expandZoneList(dataId); if (activeData && activeData.canvas) { activeData.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' }); } imageList.forEach(data => render(data)); }
     function deleteZone() { if (!confirm("이 구역을 정말 삭제하시겠습니까?")) return; saveHistory(); activeData.zones = activeData.zones.filter(z => z !== activeZone); if (activeData.id !== "dummy_root") saveData(); document.getElementById('modal').style.display = 'none'; activeZone = null; showSearchArrow = false; render(activeData); }
 
     function saveData() {
@@ -1084,6 +1119,24 @@
     }
     function exportSystemData() { const packageData = { note: "백업", savedSystemData: JSON.parse(safeStorage.getItem('savedSystemData') || "[]"), baseItems: JSON.parse(safeStorage.getItem('baseItems') || "[]") }; const downloadLink = document.createElement('a'); downloadLink.setAttribute("href", "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(packageData))); downloadLink.setAttribute("download", `매장위치지도_백업_${new Date().toISOString().slice(0,10)}.json`); downloadLink.click(); }
     function importSystemData(input) { if (!input.files[0]) return; const reader = new FileReader(); reader.onload = function(e) { try { const imported = JSON.parse(e.target.result); if (imported.savedSystemData && imported.baseItems && confirm("백업 파일로 전체 복구하시겠습니까?")) { safeStorage.setItem('savedSystemData', JSON.stringify(imported.savedSystemData)); safeStorage.setItem('baseItems', JSON.stringify(imported.baseItems)); location.reload(); } } catch (err) { alert("올바른 형식이 아닙니다."); } }; reader.readAsText(input.files[0]); }
+
+    // ────────────────────────────────────────────────────────────
+    // 📱 모바일 "검색 우선" 모드: 저장된 데이터가 있는 상태로 접속하면
+    // 검색바를 화면 상단부에 크게 띄우고, 다른 곳을 누르거나 결과를 고르면 접힌다.
+    // ────────────────────────────────────────────────────────────
+
+    function activateHeroSearch() {
+        if (!window.matchMedia('(max-width: 600px)').matches) return;
+        document.body.classList.add('hero-search-active');
+    }
+
+    function deactivateHeroSearch() {
+        document.body.classList.remove('hero-search-active');
+    }
+
+    window.addEventListener('resize', () => {
+        if (!window.matchMedia('(max-width: 600px)').matches) deactivateHeroSearch();
+    });
 
     // ────────────────────────────────────────────────────────────
     // 🔍 검색 강화: 부분/오타 허용 매칭 + 코멘트/사진제목 검색 + 하이라이트/썸네일
@@ -1341,10 +1394,11 @@
         if (saved && saved.length > 0) {
             saved.forEach(s => {
                 const img = new Image();
-                img.onload = () => { createNewCanvasElement({ img, zones: s.zones, id: s.id, title: s.title }); };
-                img.onerror = () => { createNewCanvasElement({ img: null, zones: s.zones, id: s.id, title: s.title }); };
+                img.onload = () => { createNewCanvasElement({ img, zones: s.zones, id: s.id, title: s.title, imgData: s.imgData }); };
+                img.onerror = () => { createNewCanvasElement({ img: null, zones: s.zones, id: s.id, title: s.title, imgData: s.imgData }); };
                 img.src = s.imgData;
             });
+            activateHeroSearch();
         }
         else {
             const sample = {
