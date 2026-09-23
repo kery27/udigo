@@ -298,6 +298,7 @@
         <button onclick="openVideoGuideModal()" style="background: none; border: none; padding: 0; margin-left: 8px; cursor: pointer; color: #e09b3a; display: flex; align-items: center;" title="사용방법 가이드">
             <i class="ti ti-bulb" style="font-size: 18px; transition: color 0.2s;"></i>
         </button>
+        <button id="deleteSampleBtn" onclick="clearSampleData()" style="display:none; background: none; border: 1px solid var(--danger); color: var(--danger); font-size: 10px; padding: 2px 8px; border-radius: 10px; margin-left: 8px; cursor: pointer; white-space: nowrap;">샘플 데이터 삭제</button>
     </div>
     <div class="search-input-wrap">
         <input type="text" id="searchBox" placeholder="물건 이름으로 검색" oninput="integratedSearch(false)" onfocus="this.select()">
@@ -320,6 +321,9 @@
         <button onclick="document.getElementById('fileInput').click()" class="btn-base" style="flex: 1; background: #6b6960; color: white;"><i class="ti ti-camera"></i> 새로운 매장 사진 등록하기</button>
         <button onclick="openSettingsModal()" class="btn-base" style="width: 50px; background: var(--border); color: var(--text); font-size: 18px; padding: 0;"><i class="ti ti-settings"></i></button>
     </div>
+    <button id="sampleDataBtn" onclick="loadSampleData()" class="btn-base" style="display:none; width: 100%; margin-top: 10px; background: white; border: 1px dashed var(--accent2); color: var(--accent);">
+        <i class="ti ti-package"></i> 샘플 데이터로 둘러보기
+    </button>
 </div>
 
 <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="addImage(this)">
@@ -430,7 +434,8 @@
     const safeStorage = {
         _storage: {},
         getItem(key) { try { return localStorage.getItem(key); } catch (e) { return this._storage[key] || null; } },
-        setItem(key, value) { try { localStorage.setItem(key, value); } catch (e) { this._storage[key] = value; } }
+        setItem(key, value) { try { localStorage.setItem(key, value); } catch (e) { this._storage[key] = value; } },
+        removeItem(key) { try { localStorage.removeItem(key); } catch (e) { delete this._storage[key]; } }
     };
 
     class RoboflowDetector {
@@ -1274,6 +1279,30 @@
     function importSystemData(input) { if (!input.files[0]) return; const reader = new FileReader(); reader.onload = function(e) { try { const imported = JSON.parse(e.target.result); if (imported.savedSystemData && imported.baseItems && confirm("백업 파일로 전체 복구하시겠습니까?")) { safeStorage.setItem('savedSystemData', JSON.stringify(imported.savedSystemData)); safeStorage.setItem('baseItems', JSON.stringify(imported.baseItems)); location.reload(); } } catch (err) { alert("올바른 형식이 아닙니다."); } }; reader.readAsText(input.files[0]); }
 
     // ────────────────────────────────────────────────────────────
+    // 📦 시연용 샘플 데이터: 빈 화면에서 바로 둘러볼 수 있는 미리 채워진 예시
+    // ────────────────────────────────────────────────────────────
+    const SAMPLE_DEMO_DATA = { savedSystemData: [], baseItems: [] }; // TODO: 실제 백업 JSON 내용으로 교체 예정
+
+    function loadSampleData() {
+        if (!SAMPLE_DEMO_DATA.savedSystemData.length) { alert("샘플 데이터가 아직 준비되지 않았습니다."); return; }
+        if (!confirm("샘플 데이터를 불러올까요? 현재 저장된 내용이 있다면 덮어씁니다.")) return;
+        try {
+            safeStorage.setItem('savedSystemData', JSON.stringify(SAMPLE_DEMO_DATA.savedSystemData));
+            safeStorage.setItem('baseItems', JSON.stringify(SAMPLE_DEMO_DATA.baseItems));
+            safeStorage.setItem('isSampleData', '1');
+        } catch (e) {}
+        location.reload();
+    }
+
+    function clearSampleData() {
+        if (!confirm("샘플 데이터를 삭제하고 처음 화면으로 돌아갈까요?")) return;
+        safeStorage.removeItem('savedSystemData');
+        safeStorage.removeItem('baseItems');
+        safeStorage.removeItem('isSampleData');
+        location.reload();
+    }
+
+    // ────────────────────────────────────────────────────────────
     // 📱 모바일 "검색 우선" 모드: 저장된 데이터가 있는 상태로 접속하면
     // 검색바를 화면 상단부에 크게 띄우고, 다른 곳을 누르거나 결과를 고르면 접힌다.
     // ────────────────────────────────────────────────────────────
@@ -1550,6 +1579,9 @@
         let saved = null;
         try { saved = JSON.parse(safeStorage.getItem('savedSystemData')); } catch (e) { saved = null; }
 
+        const deleteSampleBtn = document.getElementById('deleteSampleBtn');
+        const sampleDataBtn = document.getElementById('sampleDataBtn');
+
         if (saved && saved.length > 0) {
             saved.forEach(s => {
                 const img = new Image();
@@ -1558,8 +1590,10 @@
                 img.src = s.imgData;
             });
             activateHeroSearch();
+            if (deleteSampleBtn && safeStorage.getItem('isSampleData') === '1') deleteSampleBtn.style.display = 'inline-block';
         }
         else {
+            if (sampleDataBtn && SAMPLE_DEMO_DATA.savedSystemData.length) sampleDataBtn.style.display = 'block';
             const sample = {
                 img: null, id: "dummy_root", title: "#1",
                 zones: [{ x: 70, y: 120, w: 650, h: 260, name: "", items: baseItems.slice(0,0).map(name => ({ name, comment: "상단 첫번째 칸" })) }]
