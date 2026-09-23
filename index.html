@@ -891,7 +891,9 @@
     let baseItems = ["빨대", "냅킨", "시럽", "컵홀더", "우유", "원두", "캐리어", "뚜껑"];
     try { const stored = safeStorage.getItem('baseItems'); if (stored) baseItems = JSON.parse(stored); } catch(e) {}
 
-    let bubbleFontSize = 22, isDrawingNewZone = false, drawStart = { x: 0, y: 0 }, currentDrawPos = { x: 0, y: 0 };
+    // PC에서는 캔버스가 원본 크기(800px)에 가깝게 보여서 같은 값도 더 크게 보이므로,
+    // 모바일 초기값(22)은 유지하고 PC 초기값만 더 작게 잡는다.
+    let bubbleFontSize = isMobileDevice() ? 22 : 16, isDrawingNewZone = false, drawStart = { x: 0, y: 0 }, currentDrawPos = { x: 0, y: 0 };
     let holdingItem = null, mousePos = { x: 0, y: 0 }, isMovingZone = false, isResizingZone = false, resizeHandle = '';
     let zoneDragOffset = { x: 0, y: 0 }, hasDragged = false, startPointerPos = { x: 0, y: 0 }, showSearchArrow = false;
     const HANDLE_SIZE = 15;
