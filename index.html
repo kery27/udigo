@@ -83,6 +83,7 @@
             display: none; position: fixed; inset: 0;
             background: rgba(26,26,24,0.35); z-index: 1050;
         }
+        .hero-search-hint { display: none; }
         @media (max-width: 600px) {
             body.hero-search-active #heroSearchBackdrop { display: block; }
 
@@ -104,7 +105,7 @@
                 box-shadow: none; border: none; max-height: 42vh;
             }
             .hero-search-hint {
-                display: none; text-align: center; font-size: 12px; color: var(--text3);
+                text-align: center; font-size: 12px; color: var(--text3);
                 margin-top: 12px; user-select: none;
             }
             body.hero-search-active .hero-search-hint { display: block; }
@@ -1125,8 +1126,14 @@
     // 검색바를 화면 상단부에 크게 띄우고, 다른 곳을 누르거나 결과를 고르면 접힌다.
     // ────────────────────────────────────────────────────────────
 
+    // 폭이 좁아도 마우스로 조작하는 PC(브라우저 창을 좁힌 경우 등)는 제외하고,
+    // 실제 터치 기기(폰)에서만 검색 우선 모드를 켠다.
+    function isMobileDevice() {
+        return window.matchMedia('(max-width: 600px)').matches && window.matchMedia('(pointer: coarse)').matches;
+    }
+
     function activateHeroSearch() {
-        if (!window.matchMedia('(max-width: 600px)').matches) return;
+        if (!isMobileDevice()) return;
         document.body.classList.add('hero-search-active');
     }
 
@@ -1135,7 +1142,7 @@
     }
 
     window.addEventListener('resize', () => {
-        if (!window.matchMedia('(max-width: 600px)').matches) deactivateHeroSearch();
+        if (!isMobileDevice()) deactivateHeroSearch();
     });
 
     // ────────────────────────────────────────────────────────────
