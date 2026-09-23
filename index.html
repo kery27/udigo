@@ -83,7 +83,13 @@
         }
         .search-input-wrap:focus-within { border-color: var(--accent2); box-shadow: var(--shadow-focus); }
         .search-input-wrap .ti-search { color: var(--text3); font-size: 15px; flex-shrink: 0; pointer-events: none; }
-        .search-input-wrap input { flex: 1; min-width: 0; height: 100%; border: none; background: transparent; font-size: 14px; color: var(--text); outline: none; }
+        /* 전역 input[type="text"] 테두리/배경/패딩 규칙보다 우선하도록 타입 선택자를 더해 명시도를 높임
+           (그렇지 않으면 알약 안에 입력칸이 한 번 더 박스로 둘러싸여 보임) */
+        .search-input-wrap input[type="text"] {
+            flex: 1; min-width: 0; width: auto; height: 100%; padding: 0;
+            border: none; border-radius: 0; background: transparent; box-shadow: none;
+            font-size: 14px; color: var(--text); outline: none;
+        }
         .search-input-wrap input::placeholder { color: var(--text3); }
 
         .search-dropdown {
