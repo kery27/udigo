@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#f8f6f1">
+    <meta name="theme-color" content="#ffd200">
     <script>
         // 화면 테마: 페인트 전에 적용해서 기본 테마가 잠깐 보였다 바뀌는 깜빡임을 막는다
-        try { const t = localStorage.getItem('uiTheme'); if (t && t !== 'default') document.documentElement.dataset.theme = t; } catch (e) {}
+        // 처음 방문(고른 적 없음)은 옐로우 & 네이비가 기본. 'default'(그린)를 직접 고른 사람은 그대로 유지
+        let t = 'yellow';
+        try { t = localStorage.getItem('uiTheme') || 'yellow'; } catch (e) {}
+        if (t !== 'default') document.documentElement.dataset.theme = t;
     </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
     <title>매장 보관 공간 관리 시스템</title>
@@ -953,13 +956,13 @@
     <div class="theme-picker">
         <div class="theme-picker-label">화면 테마</div>
         <div class="theme-options" role="radiogroup" aria-label="화면 테마">
-            <button type="button" class="theme-option" data-theme-value="default" role="radio" onclick="setTheme('default')">
-                <span class="theme-swatch"><i style="background:#f8f6f1"></i><i style="background:#2d6a4f"></i><i style="background:#52b788"></i></span>
-                <span>기본 (그린)</span>
-            </button>
             <button type="button" class="theme-option" data-theme-value="yellow" role="radio" onclick="setTheme('yellow')">
                 <span class="theme-swatch"><i style="background:#ffd200"></i><i style="background:#13306b"></i><i style="background:#f4f6fa"></i></span>
                 <span>옐로우 &amp; 네이비</span>
+            </button>
+            <button type="button" class="theme-option" data-theme-value="default" role="radio" onclick="setTheme('default')">
+                <span class="theme-swatch"><i style="background:#f8f6f1"></i><i style="background:#2d6a4f"></i><i style="background:#52b788"></i></span>
+                <span>그린 &amp; 아이보리</span>
             </button>
         </div>
     </div>
@@ -1565,7 +1568,7 @@
         });
     }
 
-    // 🎨 화면 테마 전환 (기본 그린 / 옐로우 & 네이비) — 저장해 두고 다음 접속에도 유지
+    // 🎨 화면 테마 전환 (기본 옐로우 & 네이비 / 그린 & 아이보리) — 저장해 두고 다음 접속에도 유지. 그린의 저장값은 호환을 위해 'default' 유지
     const THEME_META_COLORS = { default: '#f8f6f1', yellow: '#ffd200' };
     function setTheme(name) {
         if (name === 'default') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = name;
