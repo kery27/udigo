@@ -346,6 +346,7 @@
               <li style="margin-bottom: 12px;">
                 <i class="ti ti-robot" style="margin-right: 5px; color: #555;"></i>
                 <b>AI 자동 분석:</b> 이게 귀찮으면 사진 등록 후 <b>[AI 분석]</b>을 누르면 수납 구역을 자동으로 찾아줍니다.
+                <span style="display: block; font-size: 11px; color: var(--text3); margin-top: 2px;">분석할 때 사진만 외부 AI 서버로 전송돼요.</span>
               </li>
 
               <li style="margin-bottom: 12px;">
@@ -843,6 +844,12 @@
     async function runAIAnalysis(dataId) {
         const data = imageList.find(d => d.id == dataId);
         if (!data || !data.imgData) { alert("이미지가 아직 업로드되지 않았습니다."); return; }
+
+        // 사진이 외부 AI 서버로 나간다는 사실은 처음 한 번만 알리고 동의를 받는다 (이후엔 묻지 않음)
+        if (safeStorage.getItem('aiUploadNoticeAccepted') !== '1') {
+            if (!confirm("AI 분석을 하려면 이 사진을 외부 AI 분석 서버(Roboflow)로 보내야 해요.\n구역·물건 정보는 보내지 않고, 이 기기에만 저장됩니다.\n\n계속할까요?")) return;
+            safeStorage.setItem('aiUploadNoticeAccepted', '1');
+        }
 
         // 💡 1. 시작: dimm 및 안내 문구 표시
         document.getElementById('editOverlay').style.display = 'block';
