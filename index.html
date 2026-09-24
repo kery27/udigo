@@ -122,7 +122,8 @@
                             border-radius 0.35s ease, box-shadow 0.35s ease, padding 0.35s ease;
             }
             body.hero-search-active .search-bar {
-                position: fixed; top: 16vh; left: 5%; width: 90%;
+                /* 키보드가 올라와도 결과가 보이도록 화면 맨 위에 붙인다 */
+                position: fixed; top: calc(8px + env(safe-area-inset-top, 0px)); left: 8px; width: calc(100% - 16px);
                 flex-direction: column; align-items: stretch; gap: 10px;
                 padding: 22px 18px; border-radius: 20px; border: 1px solid var(--border);
                 box-shadow: 0 20px 50px rgba(0,0,0,0.25); z-index: 1060;
@@ -132,7 +133,7 @@
             body.hero-search-active .search-input-wrap input { font-size: 16px; }
             body.hero-search-active .search-dropdown {
                 position: static; width: 100%; max-width: none; margin-top: 8px;
-                box-shadow: none; border: none; max-height: 42vh;
+                box-shadow: none; border: none; max-height: var(--hero-dropdown-max, 42vh);
             }
             .hero-search-hint {
                 text-align: center; font-size: 12px; color: var(--text3);
@@ -1900,6 +1901,22 @@
     function activateHeroSearch() {
         if (!isMobileDevice()) return;
         document.body.classList.add('hero-search-active');
+        fitHeroDropdown();
+    }
+
+    // 검색 결과/최근 검색 목록 높이를 "키보드 위에 보이는 영역"에 맞춘다 (가려지면 목록 안에서 스크롤)
+    function fitHeroDropdown() {
+        if (!document.body.classList.contains('hero-search-active')) return;
+        const display = document.getElementById('searchResultDisplay');
+        const vv = window.visualViewport;
+        const visibleBottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+        const top = display.getBoundingClientRect().top;
+        const room = Math.floor(visibleBottom - top - 56); // 카드 아래 여백 + 안내 문구 자리
+        document.documentElement.style.setProperty('--hero-dropdown-max', Math.max(140, room) + 'px');
+    }
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', fitHeroDropdown);
+        window.visualViewport.addEventListener('scroll', fitHeroDropdown);
     }
 
     function deactivateHeroSearch() {
@@ -2422,8 +2439,9 @@
         const actions = document.getElementById('bottomActions'); if (actions) actions.style.display = show ? 'none' : 'flex'; // 첫 화면 카드에 같은 버튼이 있으므로 중복 숨김
     }
 
+    // 검색 카드(.search-bar) 안을 누른 건 바깥 클릭으로 보지 않음 — 모바일에서 누르는 순간 카드가 위로 이동해 탭 위치가 카드 안 다른 곳에 떨어지기 때문
     // 드롭다운 안에서 innerHTML이 다시 그려지면 클릭한 요소가 문서에서 떨어져 나가므로(isConnected=false) 바깥 클릭으로 보지 않음
-    document.addEventListener('click', (e) => { const searchBox = document.getElementById('searchBox'), display = document.getElementById('searchResultDisplay'); if (searchBox && display && e.target !== searchBox && e.target.isConnected && !display.contains(e.target)) { display.style.display = 'none'; } });
+    document.addEventListener('click', (e) => { const searchBox = document.getElementById('searchBox'), display = document.getElementById('searchResultDisplay'); if (searchBox && display && e.target.isConnected && !e.target.closest('.search-bar')) { display.style.display = 'none'; } });
     const searchBoxEl = document.getElementById('searchBox'); if (searchBoxEl) { searchBoxEl.addEventListener('focus', () => { activateHeroSearch(); if (searchBoxEl.value.trim() !== "") { document.getElementById('searchResultDisplay').style.display = 'block'; } else { renderSearchSuggestions(); } }); }
 
     function renameImage(dataId) { const data = imageList.find(d => d.id == dataId); const newName = prompt("사진 이름을 입력하세요:", data.title); if (newName) { data.title = newName; const titleEl = document.getElementById(`title-${data.id}`); if (titleEl) titleEl.innerHTML = `${newName}`; saveData(); } }
