@@ -248,7 +248,7 @@
         .image-section { background: var(--card); padding: 20px; margin-bottom: 24px; border-radius: var(--radius-lg); border: 1px solid rgba(224,219,208,0.6); box-shadow: var(--shadow-sm); position: relative; }
         canvas { border: 1px solid var(--border); border-radius: var(--radius-sm); max-width: 100%; display: block; margin: 10px auto; cursor: crosshair; transition: border-color 0.3s; }
 
-        .zone-item { padding: 12px 16px; border-bottom: 0.5px solid var(--border); cursor: pointer; transition: 0.2s; background: var(--card); }
+        .zone-item { padding: 12px 14px; border-bottom: 1px solid var(--border); transition: background 0.2s; background: var(--card); }
         .zone-item:last-child { border-bottom: none; }
         @media (hover: hover) { .zone-item:hover { background: var(--bg); } }
         .zone-item.active { background: var(--active-zone-bg) !important; border-left: 3px solid var(--active-zone-bar); font-weight: bold; }
@@ -424,6 +424,22 @@
         .theme-swatch i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff; margin-left: -6px; box-shadow: 0 0 0 1px rgba(0,0,0,0.08); }
         .theme-swatch i:first-child { margin-left: 0; }
 
+        /* 📋 사진 아래 구역 목록: 사진의 번호와 같은 번호로 연결 */
+        .zl-head { display: flex; align-items: center; gap: 8px; }
+        .zl-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: none; border: 0; padding: 4px 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+        .zl-num { width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+        .zone-item.active .zl-num { background: var(--danger); }
+        .zl-name { font-size: 14px; font-weight: 700; color: var(--text); }
+        .zl-edit { flex-shrink: 0; }
+        .zl-items { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; padding-left: 32px; }
+        .zl-chip { display: inline-flex; align-items: center; gap: 4px; font: inherit; font-size: 13px; color: var(--text); padding: 4px 10px; border-radius: var(--radius-pill); background: var(--bg); border: 1px solid var(--border); }
+        .zl-chip small { font-size: 11px; color: var(--text2); }
+        .zl-chip small::before { content: '· '; }
+        .zl-chip.is-movable { cursor: pointer; border-style: dashed; border-color: var(--accent2); min-height: 36px; }
+        .zl-chip.is-movable i { color: var(--text3); font-size: 13px; }
+        .zl-chip.is-movable:active { background: var(--accent-soft); }
+        .zl-empty { margin-top: 6px; padding-left: 32px; font-size: 12px; color: var(--text3); }
+
         /* 🗓 마지막 확인일 */
         .zone-checked { font-size: 11px; font-weight: 500; color: var(--text3); }
         .zone-checked.is-stale { color: var(--warn); }
@@ -585,9 +601,9 @@
             padding-top: calc(12px + env(safe-area-inset-top, 0px));
             background: var(--charcoal); color: var(--ivory-text); box-shadow: var(--shadow-md);
             display: flex; flex-direction: column; gap: 10px;
-            transform: translateY(-100%); transition: transform 0.25s var(--ease);
+            transform: translateY(-100%); visibility: hidden; transition: transform 0.25s var(--ease), visibility 0s 0.25s;
         }
-        body.pick-mode .pick-banner { transform: none; }
+        body.pick-mode .pick-banner { transform: none; visibility: visible; transition: transform 0.25s var(--ease); }
         .pick-banner-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; line-height: 1.4; word-break: keep-all; }
         .pick-banner-title i { font-size: 20px; color: var(--accent2); flex-shrink: 0; }
         .pick-banner-actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -1432,12 +1448,14 @@
             if (modeText) modeText.innerText = '편집활성';
             if (btn) btn.classList.remove('view-mode');
             if (undoBtn) undoBtn.style.display = "flex";
+            const dBtn = document.getElementById('detailToggleBtn'); if (dBtn) dBtn.style.display = "flex";
         } else {
             if(overlay) overlay.style.display = 'none';
             if (icon) icon.className = 'ti ti-eye';
             if (modeText) modeText.innerText = '읽기전용';
             if (btn) btn.classList.add('view-mode');
             if (undoBtn) undoBtn.style.display = "none";
+            const dBtn = document.getElementById('detailToggleBtn'); if (dBtn) dBtn.style.display = "none";
         }
 
         imageList.forEach(data => {
@@ -1641,8 +1659,8 @@
 
         const listWrapper = document.createElement('div'); listWrapper.style.cssText = "margin-top: 16px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--card);";
         const toggleHeader = document.createElement('div'); toggleHeader.style.cssText = "padding: 12px 16px; background: var(--bg); cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; font-size: 13px; font-weight: 500; color: var(--text); border-bottom: 1px solid var(--border);";
-        toggleHeader.innerHTML = `<span><i class="ti ti-list" style="margin-right:4px; color:var(--text2);"></i>구역 목록 (<span id="count-${data.id}">0</span>개)</span><span id="arrow-${data.id}" style="font-size:11px; color:var(--text2);">▲ 리스트 펼치기</span>`;
-        const listDiv = document.createElement('div'); listDiv.id = 'list-' + data.id; listDiv.style.display = "none";
+        toggleHeader.innerHTML = `<span><i class="ti ti-list" style="margin-right:4px; color:var(--text2);"></i>구역 목록 (<span id="count-${data.id}">0</span>개)</span><span id="arrow-${data.id}" style="font-size:11px; color:var(--text2);">▼ 리스트 접기</span>`;
+        const listDiv = document.createElement('div'); listDiv.id = 'list-' + data.id; listDiv.style.display = "block"; // 한눈에 보기: 기본으로 펼침
         toggleHeader.onclick = () => { const isCollapsed = listDiv.style.display === "none"; listDiv.style.display = isCollapsed ? "block" : "none"; document.getElementById('arrow-' + data.id).innerText = isCollapsed ? "▼ 리스트 접기" : "▲ 리스트 펼치기"; };
 
         listWrapper.appendChild(toggleHeader); listWrapper.appendChild(listDiv);
@@ -1779,6 +1797,46 @@
             if (isEditMode && (isMovingZone || isResizingZone)) { if (pendingHistoryState) { saveHistory(pendingHistoryState); pendingHistoryState = null; } if (data.id !== "dummy_root") saveData(); render(data); }
             isMovingZone = false; isResizingZone = false; pendingHistoryState = null;
         });
+    }
+
+    // 보기 모드 구역 표시: 왼쪽 위 번호 + (직접 지은 이름이면) 이름 꼬리표 + 아래쪽 "대표 물건 외 N" / 좁으면 "N개"
+    const DEFAULT_ZONE_NAME = /^(\d+|[A-Z])구역$|^수동구역_\d+$/;
+    function fitPill(ctx, text, maxW) { return ctx.measureText(text).width + 16 <= maxW; }
+    function drawPill(ctx, cx, y, text, fontPx, align = 'center', x0 = 0) {
+        const w = ctx.measureText(text).width + 16, h = fontPx + 12;
+        const x = align === 'center' ? cx - w / 2 : x0;
+        ctx.fillStyle = 'rgba(255,255,255,0.94)'; ctx.beginPath(); drawSafeRoundRect(ctx, x, y, w, h, h / 2); ctx.fill();
+        ctx.fillStyle = '#1a1a18'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, x + w / 2, y + h / 2 + 1);
+        return w;
+    }
+    function drawZoneMarker(ctx, z, n, isActive) {
+        const fs = bubbleFontSize, r = Math.max(12, Math.round(fs * 0.72));
+        const cx = z.x + r + 6, cy = z.y + r + 6;
+        ctx.save();
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fillStyle = isActive ? '#c44444' : themeColors.accent; ctx.fill();
+        ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.round(r * 1.1)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(String(n), cx, cy + 1);
+
+        const small = Math.round(fs * 0.78);
+        ctx.font = `600 ${small}px sans-serif`;
+        // 사용자가 의미 있게 지은 이름("냉장고 위")만 번호 옆에 표시 — "3구역" 같은 기본 이름은 번호로 충분
+        if (z.name && !DEFAULT_ZONE_NAME.test(z.name)) {
+            const room = z.w - (r * 2 + 18);
+            let name = z.name;
+            while (name.length > 1 && !fitPill(ctx, name, room)) name = name.slice(0, -1);
+            if (name.length < z.name.length) name = name.length > 1 ? name.slice(0, -1) + '…' : '';
+            if (name) drawPill(ctx, 0, cy - (small + 12) / 2, name, small, 'left', cx + r + 4);
+        }
+
+        if (z.items.length) {
+            const maxW = z.w - 12, first = z.items[0].name, more = z.items.length - 1;
+            const candidates = [more ? `${first} 외 ${more}` : first, `${z.items.length}개`, `${z.items.length}`];
+            const label = candidates.find(t => fitPill(ctx, t, maxW)) || `${z.items.length}`;
+            drawPill(ctx, z.x + z.w / 2, z.y + z.h - (small + 12) - 8, label, small);
+        }
+        ctx.restore();
     }
 
     function drawSpeechBubble(ctx, x, y, items, isBelow, z) {
@@ -1923,7 +1981,9 @@
         const frameNow = performance.now();
         const flyAnim = searchFlyAnim && searchFlyAnim.dataId === data.id ? searchFlyAnim : null;
 
-        zones.forEach((z) => {
+        // 보기 모드: 사진을 가리지 않도록 테두리 + 번호 + 짧은 물건 이름만. 편집 모드: 채우기·가운데 이름·말풍선(끌어서 옮기기용)
+        const cleanView = !isEditMode && data.id !== 'dummy_root';
+        zones.forEach((z, zi) => {
             // 검색 후 깜빡이는 동안에는 기존 빨간 박스도 테두리와 함께 사라졌다 보였다 한다 (끝나면 계속 보임).
             const hideBox = flyAnim && flyAnim.zone === z && searchBlinkOn(flyAnim, frameNow) === false;
             const isHovered = holdingItem && activeData === data && mousePos.x >= z.x && mousePos.x <= z.x + z.w && mousePos.y >= z.y && mousePos.y <= z.y + z.h;
@@ -1934,12 +1994,22 @@
             }
             else if (isHovered) { ctx.fillStyle = 'rgba(255, 243, 196, 0.35)'; ctx.strokeStyle = '#c8960a'; ctx.lineWidth = 3; }
             else if (z === activeZone) { ctx.fillStyle = 'rgba(196, 68, 68, 0.12)'; ctx.strokeStyle = '#c44444'; ctx.lineWidth = 3; }
+            else if (cleanView) { /* 보기 모드 기본: 아래에서 테두리만 그림 */ }
             else { ctx.fillStyle = `rgba(${themeColors.zoneFillRgb}, 0.25)`; ctx.strokeStyle = themeColors.zoneStroke; ctx.lineWidth = 2; }
-            if (!hideBox) { ctx.fillRect(z.x, z.y, z.w, z.h); ctx.strokeRect(z.x, z.y, z.w, z.h); }
-            ctx.font = 'bold ' + Math.round(bubbleFontSize * 1.1) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.strokeStyle = '#1a1a18'; ctx.lineWidth = 3; ctx.strokeText(z.name, z.x + z.w / 2, z.y + z.h / 2); ctx.fillStyle = '#ffffff'; ctx.fillText(z.name, z.x + z.w / 2, z.y + z.h / 2);
+            if (!hideBox) {
+                if (cleanView && !pickMode && !isHovered && z !== activeZone) {
+                    // 어떤 사진에서도 보이도록 어두운 그림자선 + 흰 테두리 (안쪽은 칠하지 않음)
+                    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.strokeRect(z.x + 1, z.y + 1, z.w, z.h);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.strokeRect(z.x, z.y, z.w, z.h);
+                } else { ctx.fillRect(z.x, z.y, z.w, z.h); ctx.strokeRect(z.x, z.y, z.w, z.h); }
+            }
+            if (cleanView) { drawZoneMarker(ctx, z, zi + 1, z === activeZone); }
+            else {
+                ctx.font = 'bold ' + Math.round(bubbleFontSize * 1.1) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.strokeStyle = '#1a1a18'; ctx.lineWidth = 3; ctx.strokeText(z.name, z.x + z.w / 2, z.y + z.h / 2); ctx.fillStyle = '#ffffff'; ctx.fillText(z.name, z.x + z.w / 2, z.y + z.h / 2);
+            }
             if (isEditMode && z === activeZone) { ctx.fillStyle = 'white'; ctx.strokeStyle = '#c44444'; ctx.lineWidth = 2; const corners = [{ x: z.x, y: z.y }, { x: z.x + z.w, y: z.y }, { x: z.x, y: z.y + z.h }, { x: z.x + z.w, y: z.y + z.h }]; corners.forEach(c => { ctx.fillRect(c.x - 10, c.y - 10, 20, 20); ctx.strokeRect(c.x - 10, c.y - 10, 20, 20); }); }
-            if (showDetails && z.items.length > 0) { drawSpeechBubble(ctx, z.x, (z.y < 60 ? z.y + z.h + 5 : z.y), z.items, z.y < 60, z); } else { z.bubbleBox = null; }
+            if (isEditMode && showDetails && z.items.length > 0) { drawSpeechBubble(ctx, z.x, (z.y < 60 ? z.y + z.h + 5 : z.y), z.items, z.y < 60, z); } else { z.bubbleBox = null; }
             if (z === activeZone && showSearchArrow) { ctx.fillStyle = '#c44444'; ctx.font = 'bold 32px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('▼', z.x + z.w / 2, z.y - 20 - bounce); }
         });
 
@@ -1957,15 +2027,20 @@
         const listContainer = document.getElementById('list-' + data.id);
         if (listContainer) {
             listContainer.innerHTML = zones.map((z, i) => `
-                <div class="zone-item ${z === activeZone ? 'active' : ''}" style="border-bottom: 1px solid var(--border); padding: 12px;">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                        <div style="flex-grow:1; cursor: pointer;" onclick="selectZone('${data.id}', ${i})">
-                            <strong style="font-size:14px; color: var(--text); display:block; margin-bottom: 8px;">${escapeHtml(z.name)}${z.checkedAt ? ` <span class="zone-checked ${isZoneStale(z) ? 'is-stale' : ''}">${formatCheckedAgo(z.checkedAt)} 확인</span>` : ''}</strong>
-                            <div style="font-size:12px; color:var(--text2);">
-                                ${z.items.length > 0 ? z.items.map(it => `<div style="margin-bottom: 6px; padding-left: 8px; border-left: 2px solid var(--border);"><div style="font-weight: 500; color: var(--text);">${it.name}</div>${it.comment ? `<div style="font-size: 11px; color: var(--accent); font-style: italic; margin-top: 2px;">└ ${it.comment}</div>` : ''}</div>`).join('') : '<span style="color:var(--text3);">지정된 품목 없음</span>'}
-                            </div>
-                        </div><button onclick="editZone('${data.id}', ${i})" class="btn-xs" style="margin-left: 10px; flex-shrink: 0;"><i class="ti ti-pencil"></i> 수정</button>
-                    </div></div>`).join('');
+                <div class="zone-item ${z === activeZone ? 'active' : ''}">
+                    <div class="zl-head">
+                        <button type="button" class="zl-title" onclick="selectZone('${data.id}', ${i})">
+                            <span class="zl-num">${i + 1}</span>
+                            <span class="zl-name">${escapeHtml(z.name || '이름 없는 구역')}</span>
+                            ${z.checkedAt ? `<span class="zone-checked ${isZoneStale(z) ? 'is-stale' : ''}">${formatCheckedAgo(z.checkedAt)} 확인</span>` : ''}
+                        </button>
+                        <button type="button" onclick="editZone('${data.id}', ${i})" class="btn-xs zl-edit"><i class="ti ti-pencil"></i> 수정</button>
+                    </div>
+                    ${z.items.length ? `<div class="zl-items">${z.items.map(it => isEditMode
+                        ? `<button type="button" class="zl-chip is-movable" data-name="${escapeHtml(it.name)}" onclick="startMoveItem('${data.id}', ${i}, this.dataset.name)" title="눌러서 다른 구역으로 옮기기">${escapeHtml(it.name)}<i class="ti ti-arrows-move"></i></button>`
+                        : `<span class="zl-chip">${escapeHtml(it.name)}${it.comment ? `<small>${escapeHtml(it.comment)}</small>` : ''}</span>`).join('')}</div>`
+                      : `<div class="zl-empty">지정된 물건 없음</div>`}
+                </div>`).join('');
         }
     }
 
@@ -2579,17 +2654,30 @@
             title: `${josa(itemName, '을', '를')} 옮긴 곳을 사진에서 눌러주세요`,
             excludeZone: fromZone,
             onRemove: () => removeItemFromZone(fromZone, itemName),
-            onPick: (toData, toZone) => {
-                saveHistory();
-                const idx = fromZone.items.findIndex(i => i.name === itemName);
-                if (idx >= 0) fromZone.items.splice(idx, 1);
-                // 메모는 "세부 칸 위치"라서 새 구역에선 맞지 않으므로 옮기지 않는다
-                if (!toZone.items.some(i => i.name === itemName)) toZone.items.push({ name: itemName, comment: '' });
-                markZoneChecked(fromZone); markZoneChecked(toZone);
-                refreshAfterDataChange();
-                selectZone(toData.id, toData.zones.indexOf(toZone));
-                showToast(`${itemName} 위치를 ${josa(toZone.name || '새 구역', '으로', '로')} 바꿨어요`);
-            }
+            onPick: (toData, toZone) => moveItemBetweenZones(fromZone, toData, toZone, itemName)
+        });
+    }
+
+    function moveItemBetweenZones(fromZone, toData, toZone, itemName) {
+        saveHistory();
+        const idx = fromZone.items.findIndex(i => i.name === itemName);
+        if (idx >= 0) fromZone.items.splice(idx, 1);
+        // 메모는 "세부 칸 위치"라서 새 구역에선 맞지 않으므로 옮기지 않는다
+        if (!toZone.items.some(i => i.name === itemName)) toZone.items.push({ name: itemName, comment: '' });
+        markZoneChecked(fromZone); markZoneChecked(toZone);
+        refreshAfterDataChange();
+        selectZone(toData.id, toData.zones.indexOf(toZone));
+        showToast(`${itemName} 위치를 ${josa(toZone.name || '새 구역', '으로', '로')} 바꿨어요`);
+    }
+
+    function startMoveItem(dataId, index, itemName) {
+        const data = imageList.find(d => d.id == dataId), fromZone = data && data.zones[index];
+        if (!fromZone) return;
+        enterPickMode({
+            title: `${josa(itemName, '을', '를')} 옮길 곳을 사진에서 눌러주세요`,
+            excludeZone: fromZone,
+            onRemove: () => removeItemFromZone(fromZone, itemName),
+            onPick: (toData, toZone) => moveItemBetweenZones(fromZone, toData, toZone, itemName)
         });
     }
 
@@ -2819,6 +2907,7 @@
         if (icon) icon.className = 'ti ti-eye';
         if (modeText) modeText.innerText = '읽기전용';
         if (undoBtn) undoBtn.style.display = "none";
+        if (detailBtn) detailBtn.style.display = "none"; // 말풍선은 편집 모드 전용
         if (overlay) overlay.style.display = 'none';
 
         if (detailBtn) {
