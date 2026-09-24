@@ -396,6 +396,39 @@
             color: var(--text3); font-size: 18px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
         }
 
+        /* 📍 "찾으셨나요?" 알약: 사진을 가리지 않게 오른쪽 아래 리모컨 위에 작게 */
+        .found-pill {
+            position: fixed; right: 12px; bottom: 80px; z-index: 1030; display: flex; align-items: center;
+            background: var(--card); border: 1px solid var(--accent2); border-radius: var(--radius-pill); box-shadow: var(--shadow-md);
+            transform: translateY(12px); opacity: 0; pointer-events: none; transition: transform 0.25s var(--ease), opacity 0.2s var(--ease);
+            max-width: calc(100% - 24px);
+        }
+        body.found-pill-open .found-pill { transform: none; opacity: 1; pointer-events: auto; }
+        .found-pill-main {
+            display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 4px 0 16px; min-width: 0;
+            background: none; border: none; font-size: 14px; font-weight: 600; color: var(--accent); cursor: pointer;
+        }
+        .found-pill-main span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .found-pill-main i { font-size: 18px; flex-shrink: 0; }
+        .found-pill-close { width: 40px; height: 44px; flex-shrink: 0; border: none; background: none; color: var(--text3); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        /* 👆 구역 고르기 모드 */
+        .pick-banner {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1065; padding: 12px 16px;
+            padding-top: calc(12px + env(safe-area-inset-top, 0px));
+            background: var(--charcoal); color: var(--ivory-text); box-shadow: var(--shadow-md);
+            display: flex; flex-direction: column; gap: 10px;
+            transform: translateY(-100%); transition: transform 0.25s var(--ease);
+        }
+        body.pick-mode .pick-banner { transform: none; }
+        .pick-banner-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; line-height: 1.4; word-break: keep-all; }
+        .pick-banner-title i { font-size: 20px; color: var(--accent2); flex-shrink: 0; }
+        .pick-banner-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .pick-banner-actions .btn-base { min-height: 40px; background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.18); color: var(--ivory-text); }
+        .pick-banner-actions .pick-remove-btn { color: #ff9b9b; }
+        body.pick-mode .floating-remote { opacity: 0; pointer-events: none; }
+        body.pick-mode canvas { cursor: pointer; border-color: var(--accent2); }
+
         /* 🗂 하단 시트 (구역 고르기) */
         .sheet-backdrop { display: none; position: fixed; inset: 0; background: rgba(26,26,24,0.35); z-index: 1070; }
         .sheet {
@@ -426,6 +459,19 @@
         .sheet-row-icon { width: 44px; height: 44px; border-radius: 8px; background: #fbeaea; color: var(--danger); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
         .sheet-row-danger .sheet-row-text b { color: var(--danger); }
         .sheet-empty { padding: 32px 16px; text-align: center; font-size: 13px; color: var(--text3); line-height: 1.7; }
+
+        /* 넓은 화면(태블릿 가로·PC): 목록은 오른쪽 패널로, 사진은 가리지 않고 왼쪽에 그대로 → 사진·목록 어느 쪽으로든 고르기 */
+        @media (min-width: 900px) {
+            .sheet {
+                left: auto; right: 0; top: 0; bottom: 0; width: 380px; max-width: none; max-height: none; margin: 0;
+                border-radius: var(--radius-lg) 0 0 var(--radius-lg); transform: translateX(100%);
+            }
+            body.zone-picker-open .sheet { transform: none; }
+            body.zone-picker-open .sheet-backdrop { display: none; }
+            body.pick-mode .pick-banner { right: 380px; }
+            body.pick-mode .content-wrapper { margin-right: 380px; }
+            .pick-list-btn { display: none; }
+        }
 
         /* 💬 토스트 */
         .toast {
@@ -592,20 +638,34 @@
     </button>
 </div>
 
-<!-- 📍 검색으로 찾은 뒤: 실제로 거기 있는지 바로 확인/수정 (데이터 신선도 유지) -->
+<!-- 📍 검색으로 찾은 뒤: 깜박임이 끝나면 작은 알약 → 누르거나 앱으로 돌아오면 확인 바로 펼침 -->
+<div id="foundPill" class="found-pill">
+    <button type="button" class="found-pill-main" onclick="expandFoundBar()"><i class="ti ti-circle-check"></i><span id="foundPillText"></span></button>
+    <button type="button" class="found-pill-close" onclick="hideFoundBar()" aria-label="닫기"><i class="ti ti-x"></i></button>
+</div>
 <div id="foundBar" class="found-bar" role="status" aria-live="polite">
     <div class="found-bar-info">
         <b id="foundBarItem"></b>
         <span id="foundBarMeta"></span>
     </div>
     <div class="found-bar-actions">
-        <button class="btn-base btn-secondary" onclick="confirmFound()"><i class="ti ti-check"></i> 여기 있어요</button>
+        <button class="btn-base btn-secondary" onclick="confirmFound()"><i class="ti ti-check"></i> 네, 여기 있어요</button>
         <button class="btn-base btn-quiet" onclick="openMovePicker()"><i class="ti ti-arrows-exchange"></i> 여기 없어요</button>
     </div>
     <button class="found-bar-close" onclick="hideFoundBar()" aria-label="닫기"><i class="ti ti-x"></i></button>
 </div>
 
-<!-- 🗂 구역 고르기 시트: "옮겼어요" / "위치 등록" 공용 -->
+<!-- 👆 구역 고르기 모드 안내 (사진에서 구역을 직접 누름) -->
+<div id="pickBanner" class="pick-banner" role="status" aria-live="polite">
+    <div class="pick-banner-title"><i class="ti ti-hand-finger"></i><span id="pickBannerTitle"></span></div>
+    <div class="pick-banner-actions">
+        <button type="button" class="btn-base btn-quiet pick-list-btn" onclick="openZonePicker()"><i class="ti ti-list"></i> 목록에서 고르기</button>
+        <button type="button" class="btn-base btn-quiet pick-remove-btn" onclick="pickModeRemove()"><i class="ti ti-trash"></i> 없어졌어요</button>
+        <button type="button" class="btn-base btn-quiet" onclick="exitPickMode()">취소</button>
+    </div>
+</div>
+
+<!-- 🗂 구역 목록: 휴대폰은 하단 시트, 넓은 화면은 오른쪽 패널 -->
 <div id="zonePickerBackdrop" class="sheet-backdrop" onclick="closeZonePicker()"></div>
 <div id="zonePicker" class="sheet" role="dialog" aria-modal="true" aria-labelledby="zonePickerTitle">
     <div class="sheet-head">
@@ -613,7 +673,7 @@
             <h3 id="zonePickerTitle"></h3>
             <p id="zonePickerSub"></p>
         </div>
-        <button class="btn-ghost sheet-close" onclick="closeZonePicker()" aria-label="닫기"><i class="ti ti-x"></i></button>
+        <button class="btn-ghost sheet-close" onclick="onZonePickerClose()" aria-label="닫기"><i class="ti ti-x"></i></button>
     </div>
     <div id="zonePickerExtra"></div>
     <div id="zonePickerList" class="sheet-list"></div>
@@ -1258,6 +1318,14 @@
     }
 
     function initCanvasEvents(data, canvas) {
+        // 구역 고르기 모드에선 기존 드래그/편집 동작을 막고(스크롤은 그대로), 탭(click)으로만 구역을 고른다
+        const pickGuard = (e) => { if (pickMode) e.stopImmediatePropagation(); };
+        ['pointerdown', 'pointermove', 'pointerup'].forEach(type => canvas.addEventListener(type, pickGuard, true));
+        canvas.addEventListener('click', (e) => {
+            if (!pickMode) return;
+            const rect = canvas.getBoundingClientRect();
+            handlePickTap(data, (e.clientX - rect.left) * (canvas.width / rect.width), (e.clientY - rect.top) * (canvas.height / rect.height));
+        });
         canvas.addEventListener('pointerdown', (e) => {
             try { canvas.setPointerCapture(e.pointerId); } catch(err) {}
             const rect = canvas.getBoundingClientRect(); const x = (e.clientX - rect.left) * (canvas.width / rect.width); const y = (e.clientY - rect.top) * (canvas.height / rect.height);
@@ -1414,6 +1482,7 @@
             // (별도 requestAnimationFrame 없이도 다른 동작으로 render()가 다시 호출될 때마다 그대로 그려짐)
             anim.done = true;
             render(data);
+            onSearchHighlightDone();
             return;
         }
         requestAnimationFrame(() => tickSearchFlyAnim(seq));
@@ -1498,7 +1567,12 @@
             // 검색 후 깜빡이는 동안에는 기존 빨간 박스도 테두리와 함께 사라졌다 보였다 한다 (끝나면 계속 보임).
             const hideBox = flyAnim && flyAnim.zone === z && searchBlinkOn(flyAnim, frameNow) === false;
             const isHovered = holdingItem && activeData === data && mousePos.x >= z.x && mousePos.x <= z.x + z.w && mousePos.y >= z.y && mousePos.y <= z.y + z.h;
-            if (isHovered) { ctx.fillStyle = 'rgba(255, 243, 196, 0.35)'; ctx.strokeStyle = '#c8960a'; ctx.lineWidth = 3; }
+            if (pickMode && data.id !== 'dummy_root') {
+                // 고르기 모드: 고를 수 있는 구역은 밝게, 현재 위치(제외 구역)는 어둡게
+                if (z === pickMode.excludeZone) { ctx.fillStyle = 'rgba(26, 26, 24, 0.45)'; ctx.strokeStyle = '#9b9890'; ctx.lineWidth = 2; }
+                else { ctx.fillStyle = 'rgba(82, 183, 136, 0.3)'; ctx.strokeStyle = '#52b788'; ctx.lineWidth = 5; }
+            }
+            else if (isHovered) { ctx.fillStyle = 'rgba(255, 243, 196, 0.35)'; ctx.strokeStyle = '#c8960a'; ctx.lineWidth = 3; }
             else if (z === activeZone) { ctx.fillStyle = 'rgba(196, 68, 68, 0.12)'; ctx.strokeStyle = '#c44444'; ctx.lineWidth = 3; }
             else { ctx.fillStyle = 'rgba(45, 106, 79, 0.25)'; ctx.strokeStyle = '#2d6a4f'; ctx.lineWidth = 2; }
             if (!hideBox) { ctx.fillRect(z.x, z.y, z.w, z.h); ctx.strokeRect(z.x, z.y, z.w, z.h); }
@@ -1876,7 +1950,7 @@
             const m = matches[0];
             recordSearchPick(query, m.item ? m.item.name : m.zone.name);
             selectZone(m.data.id, m.index); display.style.display = 'none';
-            showFoundBar(m.data.id, m.index, m.item ? m.item.name : '');
+            queueFoundCheck(m.data.id, m.index, m.item ? m.item.name : '');
         }
     }
 
@@ -1910,7 +1984,7 @@
         recordSearchPick(document.getElementById('searchBox').value, el.dataset.name);
         selectZone(el.dataset.id, Number(el.dataset.index));
         document.getElementById('searchResultDisplay').style.display = 'none';
-        showFoundBar(el.dataset.id, Number(el.dataset.index), el.dataset.item);
+        queueFoundCheck(el.dataset.id, Number(el.dataset.index), el.dataset.item);
     }
 
     function existsInStore(name) {
@@ -1994,16 +2068,53 @@
         clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
     }
 
-    let foundCtx = null; // { dataId, zone, itemName }
-    function showFoundBar(dataId, index, itemName) {
+    // 검색 후 확인 흐름: 위치를 먼저 보여주고(줌인·깜박임) → 끝나면 작은 "찾으셨나요?" 알약 →
+    // 창고에 다녀와 앱으로 돌아오면(화면이 꺼졌다 켜지거나 다른 앱에서 복귀) 크게 물어본다.
+    const FOUND_ASK_ON_RETURN_MS = 3000, FOUND_EXPIRE_MS = 2 * 60 * 60 * 1000;
+    let foundCtx = null; // { dataId, zone, itemName, stage: 'waiting' | 'pill' | 'bar', at, hiddenAt }
+    let foundFallbackTimer = null;
+
+    function queueFoundCheck(dataId, index, itemName) {
+        hideFoundBar();
         const data = imageList.find(d => d.id == dataId), zone = data && data.zones[index];
-        if (!zone || !itemName) { hideFoundBar(); return; } // 구역/사진 이름으로 찾은 경우엔 확인할 "물건"이 없음
-        foundCtx = { dataId: data.id, zone, itemName };
-        document.getElementById('foundBarItem').textContent = itemName;
+        if (!zone || !itemName) return; // 구역/사진 이름으로 찾은 경우엔 확인할 "물건"이 없음
+        foundCtx = { dataId: data.id, zone, itemName, stage: 'waiting', at: Date.now(), hiddenAt: null };
+        document.getElementById('foundPillText').textContent = `${itemName} 찾으셨나요?`;
+        document.getElementById('foundBarItem').textContent = `${itemName} 찾으셨나요?`;
         document.getElementById('foundBarMeta').textContent = `${zone.name || '이름 없는 구역'} · ` + (zone.checkedAt ? `${formatCheckedAgo(zone.checkedAt)} 확인` : '확인 기록 없음');
+        foundFallbackTimer = setTimeout(showFoundPill, 6000); // 애니메이션 완료 신호를 못 받는 경우 대비
+    }
+
+    // 줌인·깜박임이 끝난 시점 (tickSearchFlyAnim에서 호출)
+    function onSearchHighlightDone() { if (foundCtx && foundCtx.stage === 'waiting') showFoundPill(); }
+
+    function showFoundPill() {
+        clearTimeout(foundFallbackTimer);
+        if (!foundCtx || foundCtx.stage !== 'waiting') return;
+        foundCtx.stage = 'pill';
+        document.body.classList.add('found-pill-open');
+    }
+    function expandFoundBar() {
+        if (!foundCtx) return;
+        clearTimeout(foundFallbackTimer);
+        foundCtx.stage = 'bar';
+        document.body.classList.remove('found-pill-open');
         document.body.classList.add('found-bar-open');
     }
-    function hideFoundBar() { foundCtx = null; document.body.classList.remove('found-bar-open'); }
+    function hideFoundBar() {
+        clearTimeout(foundFallbackTimer);
+        foundCtx = null;
+        document.body.classList.remove('found-pill-open', 'found-bar-open');
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (!foundCtx) return;
+        if (document.hidden) { foundCtx.hiddenAt = Date.now(); return; }
+        const away = foundCtx.hiddenAt ? Date.now() - foundCtx.hiddenAt : 0;
+        foundCtx.hiddenAt = null;
+        if (Date.now() - foundCtx.at > FOUND_EXPIRE_MS) { hideFoundBar(); return; } // 너무 오래 전 검색은 묻지 않음
+        if (away >= FOUND_ASK_ON_RETURN_MS) expandFoundBar();
+    });
 
     function refreshAfterDataChange() { saveData(); imageList.forEach(d => render(d)); }
 
@@ -2018,14 +2129,11 @@
     function openMovePicker() {
         if (!foundCtx) return;
         const { zone: fromZone, itemName } = foundCtx;
-        openZonePicker({
-            title: `'${itemName}' 어디로 옮겼나요?`,
-            sub: '지금 있는 구역을 누르면 위치가 바로 바뀌어요.',
+        hideFoundBar();
+        enterPickMode({
+            title: `${josa(itemName, '을', '를')} 옮긴 곳을 사진에서 눌러주세요`,
             excludeZone: fromZone,
-            extraHtml: `<button type="button" class="sheet-row sheet-row-danger" onclick="removeFoundItem()">
-                    <span class="sheet-row-icon"><i class="ti ti-trash"></i></span>
-                    <span class="sheet-row-text"><b>창고에서 없어졌어요</b><small>이 구역 목록에서 빼기</small></span>
-                </button>`,
+            onRemove: () => removeItemFromZone(fromZone, itemName),
             onPick: (toData, toZone) => {
                 saveHistory();
                 const idx = fromZone.items.findIndex(i => i.name === itemName);
@@ -2033,7 +2141,6 @@
                 // 메모는 "세부 칸 위치"라서 새 구역에선 맞지 않으므로 옮기지 않는다
                 if (!toZone.items.some(i => i.name === itemName)) toZone.items.push({ name: itemName, comment: '' });
                 markZoneChecked(fromZone); markZoneChecked(toZone);
-                hideFoundBar();
                 refreshAfterDataChange();
                 selectZone(toData.id, toData.zones.indexOf(toZone));
                 showToast(`${itemName} 위치를 ${josa(toZone.name || '새 구역', '으로', '로')} 바꿨어요`);
@@ -2041,14 +2148,12 @@
         });
     }
 
-    function removeFoundItem() {
-        if (!foundCtx) return;
-        const { zone, itemName } = foundCtx;
+    function removeItemFromZone(zone, itemName) {
         if (!confirm(`${josa(itemName, '을', '를')} ${zone.name || '이 구역'} 목록에서 뺄까요?`)) return;
+        exitPickMode();
         saveHistory();
         zone.items = zone.items.filter(i => i.name !== itemName);
         markZoneChecked(zone);
-        closeZonePicker(); hideFoundBar();
         refreshAfterDataChange();
         showToast(`${josa(itemName, '을', '를')} 목록에서 뺐어요`);
     }
@@ -2059,9 +2164,8 @@
         if (!name) return;
         document.getElementById('searchResultDisplay').style.display = 'none';
         deactivateHeroSearch();
-        openZonePicker({
-            title: `'${name}' 어디에 있나요?`,
-            sub: '구역을 누르면 그 구역에 등록돼요.',
+        enterPickMode({
+            title: `${josa(name, '이', '가')} 있는 곳을 사진에서 눌러주세요`,
             onPick: (toData, toZone) => {
                 saveHistory();
                 if (!baseItems.includes(name)) baseItems.push(name);
@@ -2075,17 +2179,65 @@
         });
     }
 
-    let zonePickerHandler = null;
-    function openZonePicker({ title, sub = '', excludeZone = null, extraHtml = '', onPick }) {
-        zonePickerHandler = onPick;
-        document.getElementById('zonePickerTitle').textContent = title;
-        document.getElementById('zonePickerSub').textContent = sub;
-        document.getElementById('zonePickerExtra').innerHTML = extraHtml;
+    // ────────────────────────────────────────────────────────────
+    // 👆 구역 고르기 모드: 사진 위 구역을 직접 눌러서 고른다 ("사진 = 창고 지도")
+    //    휴대폰: 상단 안내 + [목록에서 고르기]는 하단 시트 / 태블릿·PC(넓은 화면): 오른쪽 패널에 목록 동시 표시
+    // ────────────────────────────────────────────────────────────
+    let pickMode = null; // { title, excludeZone, onPick, onRemove }
+    const wideScreenQuery = window.matchMedia('(min-width: 900px)');
+
+    function enterPickMode({ title, excludeZone = null, onPick, onRemove = null }) {
+        pickMode = { title, excludeZone, onPick, onRemove };
+        searchFlyAnim = null; showSearchArrow = false; activeZone = null;
+        document.getElementById('pickBannerTitle').textContent = title;
+        document.querySelectorAll('.pick-remove-btn').forEach(b => b.style.display = onRemove ? '' : 'none');
+        document.body.classList.add('pick-mode');
+        imageList.forEach(d => render(d));
+        if (!imageList.some(d => d.id !== 'dummy_root' && d.zones.length)) { openZonePicker(); return; } // 고를 구역이 없으면 안내 표시
+        if (wideScreenQuery.matches) openZonePicker();
+        // 고를 사진이 화면에 없으면 첫 사진으로 데려다 준다
+        const firstSection = document.querySelector('.image-section:not([style*="display: none"])');
+        const anyCanvasVisible = imageList.some(d => { if (!d.canvas) return false; const r = d.canvas.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; });
+        if (!anyCanvasVisible && firstSection) firstSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    function exitPickMode() {
+        pickMode = null;
+        document.body.classList.remove('pick-mode');
+        closeZonePicker();
+        imageList.forEach(d => render(d));
+    }
+    function completePick(data, zone) {
+        if (!pickMode) return;
+        const handler = pickMode.onPick;
+        exitPickMode();
+        handler(data, zone);
+    }
+    function pickModeRemove() { if (pickMode && pickMode.onRemove) pickMode.onRemove(); }
+
+    // 사진에서 구역을 눌렀을 때 (initCanvasEvents에서 연결)
+    function handlePickTap(data, x, y) {
+        if (!pickMode || data.id === 'dummy_root') return;
+        const zone = [...data.zones].reverse().find(z => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h);
+        if (!zone) { showToast('초록색 구역 안쪽을 눌러주세요'); return; }
+        if (zone === pickMode.excludeZone) { showToast('지금 등록된 구역이에요. 다른 구역을 눌러주세요'); return; }
+        completePick(data, zone);
+    }
+
+    // 구역 목록 (휴대폰: 하단 시트 / 넓은 화면: 오른쪽 패널)
+    function openZonePicker() {
+        if (!pickMode) return;
+        document.getElementById('zonePickerTitle').textContent = pickMode.title.replace('사진에서 눌러주세요', '골라주세요');
+        document.getElementById('zonePickerSub').textContent = wideScreenQuery.matches ? '사진에서 바로 눌러도 돼요.' : '';
+        document.getElementById('zonePickerExtra').innerHTML = pickMode.onRemove
+            ? `<button type="button" class="sheet-row sheet-row-danger" onclick="pickModeRemove()">
+                    <span class="sheet-row-icon"><i class="ti ti-trash"></i></span>
+                    <span class="sheet-row-text"><b>창고에서 없어졌어요</b><small>이 구역 목록에서 빼기</small></span>
+               </button>` : '';
 
         const rows = [];
         imageList.filter(d => d.id !== 'dummy_root').forEach(d => {
             d.zones.forEach((z, i) => {
-                if (z === excludeZone) return;
+                if (z === pickMode.excludeZone) return;
                 const thumb = getZoneThumbnail(d, z);
                 const preview = z.items.length ? z.items.slice(0, 3).map(it => it.name).join(', ') + (z.items.length > 3 ? ` 외 ${z.items.length - 3}개` : '') : '비어 있음';
                 rows.push(`<button type="button" class="sheet-row" onclick="zonePickerPick('${escapeHtml(d.id)}', ${i})">
@@ -2099,12 +2251,12 @@
             : `<div class="sheet-empty">아직 만든 구역이 없어요.<br>사진을 등록하고 구역을 먼저 만들어 주세요.</div>`;
         document.body.classList.add('zone-picker-open');
     }
-    function closeZonePicker() { zonePickerHandler = null; document.body.classList.remove('zone-picker-open'); }
+    function closeZonePicker() { document.body.classList.remove('zone-picker-open'); }
+    // 목록의 닫기(X): 넓은 화면에선 목록이 고르기 모드 자체이므로 모드를 끝내고, 휴대폰에선 목록만 닫고 사진 고르기로 돌아간다
+    function onZonePickerClose() { if (wideScreenQuery.matches || !imageList.some(d => d.id !== 'dummy_root' && d.zones.length)) exitPickMode(); else closeZonePicker(); }
     function zonePickerPick(dataId, index) {
         const data = imageList.find(d => d.id == dataId), zone = data && data.zones[index];
-        const handler = zonePickerHandler;
-        closeZonePicker();
-        if (zone && handler) handler(data, zone);
+        if (zone) completePick(data, zone);
     }
 
     // ────────────────────────────────────────────────────────────
