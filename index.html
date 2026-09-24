@@ -1336,7 +1336,16 @@
         Object.assign(document.body.style, { position: '', top: '', left: '', right: '', width: '' });
         window.scrollTo(0, pageScrollY);
     }
+    // 사진에서 구역을 손가락으로 떼는 순간(pointerup) 팝업이 열리는데, 그 직후 브라우저가 같은 자리에
+    // click을 한 번 더 보내서 팝업 안의 물건이 저절로 체크되는 문제("유령 클릭")를 막는다.
+    const GHOST_CLICK_MS = 450;
+    let zoneModalOpenedAt = 0;
+    document.getElementById('modal').addEventListener('click', (e) => {
+        if (performance.now() - zoneModalOpenedAt < GHOST_CLICK_MS) { e.preventDefault(); e.stopPropagation(); }
+    }, true);
+
     function showZoneModal() {
+        zoneModalOpenedAt = performance.now();
         document.getElementById('modal').style.display = 'flex';
         if (!document.body.classList.contains('zone-modal-open')) { document.body.classList.add('zone-modal-open'); lockPageScroll(); }
     }
