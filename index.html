@@ -447,6 +447,20 @@
         .zm-item .cmt { display: none; }
         .zm-item.is-checked .cmt { display: block; width: calc(100% - 28px); margin: 0 14px 12px; background: var(--card); }
 
+        /* 🎙 듣는 중 표시: 마이크 버튼은 빨간 녹음 버튼(누르면 정지) + 물결, 입력칸은 빨간 테두리 + 움직이는 소리 막대 */
+        .icon-btn.is-listening { background: var(--danger); color: #fff; animation: mic-ring 1.2s ease-out infinite; }
+        @keyframes mic-ring { 0% { box-shadow: 0 0 0 0 rgba(204,68,68,0.45); } 100% { box-shadow: 0 0 0 12px rgba(204,68,68,0); } }
+        .search-input-wrap.is-listening { border-color: var(--danger); box-shadow: 0 0 0 4px rgba(204,68,68,0.12); }
+        .search-input-wrap.is-listening input::placeholder { color: var(--danger); opacity: 1; }
+        .search-input-wrap.is-listening .ti-search { display: none; }
+        .voice-bars { display: none; align-items: center; gap: 3px; height: 16px; flex-shrink: 0; margin-right: 2px; }
+        .search-input-wrap.is-listening .voice-bars { display: inline-flex; }
+        .voice-bars span { width: 3px; height: 100%; border-radius: 2px; background: var(--danger); transform-origin: center; animation: voice-bar 0.9s ease-in-out infinite; }
+        .voice-bars span:nth-child(2) { animation-delay: 0.15s; }
+        .voice-bars span:nth-child(3) { animation-delay: 0.3s; }
+        @keyframes voice-bar { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
+        @media (prefers-reduced-motion: reduce) { .icon-btn.is-listening, .voice-bars span { animation: none; } }
+
         /* 찾기·새로 추가 입력줄 (상단 검색창과 같은 알약 모양) */
         .search-input-wrap.zm-find { width: 100%; margin-bottom: 10px; background: var(--card); }
         .zm-status { font-size: 12px; color: var(--text2); text-align: center; line-height: 1.5; margin: -2px 0 10px; }
@@ -659,6 +673,7 @@
     </div>
     <div class="search-input-wrap">
         <input type="text" id="searchBox" placeholder="물건 이름으로 검색" oninput="integratedSearch(false)" onfocus="this.select()">
+        <span class="voice-bars" aria-hidden="true"><span></span><span></span><span></span></span>
         <i class="ti ti-search"></i>
         <button id="micBtn" class="icon-btn" onclick="startVoiceRecognition()" title="말로 검색" aria-label="말로 검색">
             <i class="ti ti-microphone"></i>
@@ -781,6 +796,7 @@
         <!-- 상단 검색창과 같은 모양: 입력(찾기·새로 추가) + 돋보기 + 가져오기 버튼들 -->
         <div class="search-input-wrap zm-find">
             <input type="text" id="newItemInput" placeholder="물건 찾기 또는 새로 추가" autocomplete="off" enterkeyhint="done" oninput="applyZoneItemFilter()">
+            <span class="voice-bars" aria-hidden="true"><span></span><span></span><span></span></span>
             <i class="ti ti-search"></i>
             <!-- 📷 추후 OCR(창고에 적어둔 라벨·메모 사진에서 가져오기) 버튼을 이 자리에 같은 .icon-btn으로 추가하고,
                  인식 결과는 openImportReview({ source: 'ocr', candidates: [{ name, comment }] })로 넘기면 확인 목록이 그대로 재사용된다. -->
@@ -1342,16 +1358,74 @@
         imageList.forEach(data => render(data));
     }
 
+    // ────────────────────────────────────────────────────────────
+    // 🎙 공용 음성 입력: 듣는 중 표시(버튼·입력칸), 말하는 내용 실시간 표시, 7초 무음 자동 종료, 다시 누르면 정지
+    // ────────────────────────────────────────────────────────────
+    const VOICE_SILENCE_MS = 7000;
+    let activeVoice = null;
+    function startVoiceCapture({ btn, input, onFinal, onNoSpeech }) {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) { alert('음성 인식을 지원하지 않는 브라우저입니다.'); return; }
+        if (activeVoice) { const same = activeVoice.btn === btn; activeVoice.manual = true; activeVoice.stop(); if (same) return; } // 듣는 중에 다시 누르면 정지
+
+        const wrap = input.closest('.search-input-wrap'), icon = btn.querySelector('i');
+        const prev = { value: input.value, placeholder: input.placeholder, label: btn.getAttribute('aria-label') };
+        const rec = new SR();
+        rec.lang = 'ko-KR'; rec.interimResults = true; rec.maxAlternatives = 1;
+        let finalText = '', heard = false, error = null, silenceTimer = null;
+        const session = { btn, stop: () => { try { rec.stop(); } catch (e) {} } };
+        activeVoice = session;
+
+        const setListening = (on) => {
+            btn.classList.toggle('is-listening', on);
+            if (wrap) wrap.classList.toggle('is-listening', on);
+            btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            btn.setAttribute('aria-label', on ? '듣기 멈추기' : prev.label);
+            if (icon) icon.className = on ? 'ti ti-player-stop-filled' : 'ti ti-microphone';
+            input.placeholder = on ? '듣고 있어요… 말씀하세요' : prev.placeholder;
+        };
+
+        rec.onstart = () => {
+            setListening(true);
+            input.value = '';
+            if (navigator.vibrate) navigator.vibrate(30);
+            silenceTimer = setTimeout(() => { if (!heard) session.stop(); }, VOICE_SILENCE_MS);
+        };
+        rec.onresult = (e) => {
+            heard = true;
+            let interim = '';
+            for (let i = e.resultIndex || 0; i < e.results.length; i++) {
+                const r = e.results[i];
+                if (r.isFinal) finalText += r[0].transcript; else interim += r[0].transcript;
+            }
+            input.value = (finalText + interim).trim(); // 말하는 도중에도 입력칸에 바로 보여줌
+        };
+        rec.onerror = (e) => { error = e.error; };
+        rec.onend = () => {
+            clearTimeout(silenceTimer);
+            setListening(false);
+            if (activeVoice === session) activeVoice = null;
+            const text = (finalText || input.value).trim();
+            if (text) { onFinal(text); return; }
+            input.value = prev.value;
+            const denied = error === 'not-allowed' || error === 'service-not-allowed';
+            if (session.manual && !denied) return; // 사용자가 직접 멈춘 경우엔 "못 들었어요"를 띄우지 않음
+            if (onNoSpeech) onNoSpeech(denied ? '마이크 권한을 허용해야 말로 입력할 수 있어요' : '못 들었어요. 마이크를 다시 눌러 말해주세요');
+        };
+        try { rec.start(); } catch (e) { activeVoice = null; setListening(false); }
+    }
+
     function startVoiceRecognition() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) { alert("음성 인식을 지원하지 않는 브라우저입니다."); return; }
-        const recognition = new SpeechRecognition(); recognition.lang = 'ko-KR';
-        const micBtn = document.getElementById('micBtn'), searchInput = document.getElementById('searchBox');
-        recognition.onstart = () => { searchInput.classList.add('listening'); searchInput.placeholder = "듣고 있습니다..."; searchInput.value = ""; };
-        recognition.onspeechend = () => { recognition.stop(); };
-        recognition.onresult = (event) => { let resultText = event.results[0][0].transcript.trim().replace(/(어디\s*있어|찾아줘|보여줘|검색해줘)$/, "").trim(); if (resultText) { searchInput.value = resultText; integratedSearch(true); } };
-        recognition.onend = () => { searchInput.classList.remove('listening'); searchInput.placeholder = "물건 이름으로 검색"; };
-        recognition.start();
+        const searchInput = document.getElementById('searchBox');
+        startVoiceCapture({
+            btn: document.getElementById('micBtn'),
+            input: searchInput,
+            onFinal: (text) => {
+                searchInput.value = text.replace(/(어디\s*있어|찾아줘|보여줘|검색해줘)$/, '').trim();
+                integratedSearch(true);
+            },
+            onNoSpeech: (msg) => showToast(msg)
+        });
     }
 
     function openSettingsModal() { document.getElementById('settingsModal').style.display = 'block'; }
@@ -1383,6 +1457,7 @@
     }
     function hideZoneModal() {
         closeImportReview();
+        if (activeVoice && activeVoice.btn.id === 'voiceItemBtn') activeVoice.stop();
         document.getElementById('modal').style.display = 'none';
         if (document.body.classList.contains('zone-modal-open')) { document.body.classList.remove('zone-modal-open'); unlockPageScroll(); }
     }
@@ -1929,52 +2004,26 @@
     }
 
     function startVoiceItemEntry() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const statusEl = document.getElementById('voiceItemStatus');
-        const btn = document.getElementById('voiceItemBtn');
-        if (!SpeechRecognition) { alert('음성 인식을 지원하지 않는 브라우저입니다.'); return; }
         if (!activeZone) return;
-
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'ko-KR';
-
-        recognition.onstart = () => {
-            if (btn) { btn.classList.add('listening'); btn.disabled = true; }
-            if (statusEl) statusEl.textContent = '듣고 있어요… 물건 이름을 끊어서 말해주세요';
-        };
-
-        recognition.onspeechend = () => { recognition.stop(); };
-
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript.trim();
-            const names = [...new Set(parseVoiceItemList(transcript))];
-            const status = document.getElementById('voiceItemStatus');
-            if (names.length === 0) { if (status) status.textContent = '알아들은 물건이 없어요. 다시 말해주세요'; return; }
-            if (status) status.textContent = '';
-            openImportReview({
-                source: 'voice',
-                title: `말한 물건 ${names.length}개`,
-                sub: '잘못 들은 건 체크를 풀어주세요',
-                candidates: names.map(name => ({ name })),
-                onRetry: startVoiceItemEntry
-            });
-        };
-
-        recognition.onerror = () => {
-            const btnAfter = document.getElementById('voiceItemBtn');
-            if (btnAfter) { btnAfter.classList.remove('listening'); btnAfter.disabled = false; }
-            const s = document.getElementById('voiceItemStatus');
-            if (s) s.textContent = '음성을 알아듣지 못했어요. 다시 시도해주세요';
-        };
-
-        recognition.onend = () => {
-            const btnAfter = document.getElementById('voiceItemBtn');
-            if (btnAfter) { btnAfter.classList.remove('listening'); btnAfter.disabled = false; }
-            const s = document.getElementById('voiceItemStatus');
-            if (s && s.textContent.startsWith('듣고 있어요')) s.textContent = ''; // 아무 말 없이 끝난 경우
-        };
-
-        recognition.start();
+        const input = document.getElementById('newItemInput'), status = document.getElementById('voiceItemStatus');
+        status.textContent = '';
+        startVoiceCapture({
+            btn: document.getElementById('voiceItemBtn'),
+            input,
+            onFinal: (transcript) => {
+                input.value = ''; applyZoneItemFilter();
+                const names = [...new Set(parseVoiceItemList(transcript))];
+                if (names.length === 0) { status.textContent = '알아들은 물건이 없어요. 다시 말해주세요'; return; }
+                openImportReview({
+                    source: 'voice',
+                    title: `말한 물건 ${names.length}개`,
+                    sub: '잘못 들은 건 체크를 풀어주세요',
+                    candidates: names.map(name => ({ name })),
+                    onRetry: startVoiceItemEntry
+                });
+            },
+            onNoSpeech: (msg) => { status.textContent = msg; applyZoneItemFilter(); }
+        });
     }
     function applyIndustryTemplate() {
         const selectedType = document.getElementById('industrySelect').value;
