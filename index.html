@@ -1227,8 +1227,13 @@
         requestAnimationFrame(() => tickSearchFlyAnim(seq));
     }
 
-    function drawSearchFlyOverlay(ctx, anim, canvas) {
-        const now = performance.now();
+    // 깜빡임 구간에서 지금이 "켜짐" 차례인지 (깜빡임 전·후에는 null)
+    function searchBlinkOn(anim, now) {
+        if (!anim || anim.blinkStart === null || anim.done) return null;
+        return Math.floor((now - anim.blinkStart) / anim.blinkInterval) % 2 === 0;
+    }
+
+    function drawSearchFlyOverlay(ctx, anim, canvas, now) {
         if (anim.blinkStart === null) {
             // 날아와서 좁혀지는 구간 (ease-out)
             const t = Math.min(1, (now - anim.startTime) / anim.flyDuration);
@@ -1262,9 +1267,7 @@
             ctx.restore();
         } else {
             // 깜빡이는 구간: 스포트라이트를 풀고 전체 이미지를 보여주면서 테두리 색을 켰다 껐다 반복한다.
-            const blinkElapsed = now - anim.blinkStart;
-            const on = Math.floor(blinkElapsed / anim.blinkInterval) % 2 === 0;
-            if (on) {
+            if (searchBlinkOn(anim, now)) {
                 ctx.save();
                 ctx.strokeStyle = '#c44444';
                 ctx.lineWidth = 4;
@@ -1295,12 +1298,18 @@
             ctx.fillRect(x1, y1, w, h); ctx.strokeRect(x1, y1, w, h); ctx.setLineDash([]);
         }
 
+        // 한 프레임 안에서 구역 박스와 깜빡임 테두리가 같은 박자로 움직이도록 시각을 한 번만 잡는다.
+        const frameNow = performance.now();
+        const flyAnim = searchFlyAnim && searchFlyAnim.dataId === data.id ? searchFlyAnim : null;
+
         zones.forEach((z) => {
+            // 검색 후 깜빡이는 동안에는 기존 빨간 박스도 테두리와 함께 사라졌다 보였다 한다 (끝나면 계속 보임).
+            const hideBox = flyAnim && flyAnim.zone === z && searchBlinkOn(flyAnim, frameNow) === false;
             const isHovered = holdingItem && activeData === data && mousePos.x >= z.x && mousePos.x <= z.x + z.w && mousePos.y >= z.y && mousePos.y <= z.y + z.h;
             if (isHovered) { ctx.fillStyle = 'rgba(255, 243, 196, 0.35)'; ctx.strokeStyle = '#c8960a'; ctx.lineWidth = 3; }
             else if (z === activeZone) { ctx.fillStyle = 'rgba(196, 68, 68, 0.12)'; ctx.strokeStyle = '#c44444'; ctx.lineWidth = 3; }
             else { ctx.fillStyle = 'rgba(45, 106, 79, 0.25)'; ctx.strokeStyle = '#2d6a4f'; ctx.lineWidth = 2; }
-            ctx.fillRect(z.x, z.y, z.w, z.h); ctx.strokeRect(z.x, z.y, z.w, z.h);
+            if (!hideBox) { ctx.fillRect(z.x, z.y, z.w, z.h); ctx.strokeRect(z.x, z.y, z.w, z.h); }
             ctx.font = 'bold ' + Math.round(bubbleFontSize * 1.1) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.strokeStyle = '#1a1a18'; ctx.lineWidth = 3; ctx.strokeText(z.name, z.x + z.w / 2, z.y + z.h / 2); ctx.fillStyle = '#ffffff'; ctx.fillText(z.name, z.x + z.w / 2, z.y + z.h / 2);
             if (isEditMode && z === activeZone) { ctx.fillStyle = 'white'; ctx.strokeStyle = '#c44444'; ctx.lineWidth = 2; const corners = [{ x: z.x, y: z.y }, { x: z.x + z.w, y: z.y }, { x: z.x, y: z.y + z.h }, { x: z.x + z.w, y: z.y + z.h }]; corners.forEach(c => { ctx.fillRect(c.x - 10, c.y - 10, 20, 20); ctx.strokeRect(c.x - 10, c.y - 10, 20, 20); }); }
@@ -1308,7 +1317,7 @@
             if (z === activeZone && showSearchArrow) { ctx.fillStyle = '#c44444'; ctx.font = 'bold 32px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('▼', z.x + z.w / 2, z.y - 20 - bounce); }
         });
 
-        if (searchFlyAnim && searchFlyAnim.dataId === data.id) { drawSearchFlyOverlay(ctx, searchFlyAnim, canvas); }
+        if (flyAnim) { drawSearchFlyOverlay(ctx, flyAnim, canvas, frameNow); }
 
         if (holdingItem && activeData === data) {
             ctx.save(); ctx.fillStyle = '#2d6a4f'; ctx.strokeStyle = '#52b788'; ctx.lineWidth = 1.5;
