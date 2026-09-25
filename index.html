@@ -75,6 +75,156 @@
             --hero-text2: rgba(255,255,255,0.78);
             --hero-chip-bg: rgba(255,255,255,0.12);
             --hero-chip-border: rgba(255,255,255,0.28);
+            --on-accent: #fff;               /* accent 배경 위 글자 */
+            --notice-bg: #fff8e8;            /* 안내 배너·새 물건 태그 */
+            --notice-border: #f1dfb4;
+            --notice-text: #9a6b12;
+            --danger-soft: #fbeaea;
+        }
+
+        /* ⚫🟡 블랙 & 옐로우 테마: 검정 바탕 + 노란 강조 (어두운 매장·야간에도 눈부시지 않게) */
+        :root[data-theme="dark"] {
+            color-scheme: dark;
+            --bg: #0f0f10;
+            --card: #1b1b1d;
+            --border: #2e2e32;
+            --accent: #ffd200;
+            --accent2: #e6bd00;
+            --text: #f2f2ef;
+            --text2: #b6b6b0;
+            --text3: #86867f;
+            --danger: #ff6b6b;
+            --warn: #f0a54a;
+            --search-hl: #5a4a00;
+            --zone-border: rgba(255,210,0,0.85);
+            --ivory-bg: rgba(27,27,29,0.92);
+            --ivory-border: #2e2e32;
+            --charcoal: #2c2c30;
+            --ivory-text: #f2f2ef;
+            --charcoal-mute: #b6b6b0;
+            --shadow-xs: 0 1px 2px rgba(0,0,0,0.4);
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.45);
+            --shadow-md: 0 8px 24px rgba(0,0,0,0.5);
+            --shadow-lg: 0 16px 40px rgba(0,0,0,0.6);
+            --shadow-focus: 0 0 0 4px rgba(230,189,0,0.3);
+
+            --accent-hover: #ffe04d;
+            --accent-soft: #2b2710;
+            --accent-rgb: 230, 189, 0;
+            --accent-dark-rgb: 255, 210, 0;
+            --on-accent2: #141414;
+            --on-accent: #141414;
+            --header-bg: rgba(15,15,16,0.92);
+            --badge-bg: #ffd200;
+            --badge-text: #141414;
+            --active-zone-bg: #2b2710;
+            --active-zone-bar: #ffd200;
+            --zone-stroke: #ffd200;
+            --zone-fill-rgb: 255, 210, 0;
+            --hero-bg: #0f0f10;
+            --hero-text: #f2f2ef;
+            --hero-text2: rgba(242,242,239,0.7);
+            --hero-chip-bg: rgba(255,255,255,0.07);
+            --hero-chip-border: rgba(255,255,255,0.16);
+            --notice-bg: #2b2710;
+            --notice-border: #4a4214;
+            --notice-text: #ffd966;
+            --danger-soft: #3a1f1f;
+        }
+
+        /* ⚫🔴 블랙 & 레드 테마: 검정 바탕 + 빨강·금 강조 (중식당 느낌) */
+        :root[data-theme="redblack"] {
+            color-scheme: dark;
+            --bg: #130f0f;
+            --card: #1f1616;
+            --border: #3d2626;
+            --accent: #c62828;
+            --accent2: #d4af37;
+            --text: #f3ece3;
+            --text2: #c9b8ae;
+            --text3: #8f7d73;
+            --danger: #ff7043;
+            --warn: #e0a458;
+            --search-hl: #4a2f10;
+            --zone-border: rgba(198,40,40,0.85);
+            --ivory-bg: rgba(31,22,22,0.92);
+            --ivory-border: #3d2626;
+            --charcoal: #2a1c1c;
+            --ivory-text: #f3ece3;
+            --charcoal-mute: #c9b8ae;
+            --shadow-xs: 0 1px 2px rgba(0,0,0,0.4);
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.45);
+            --shadow-md: 0 8px 24px rgba(0,0,0,0.5);
+            --shadow-lg: 0 16px 40px rgba(0,0,0,0.6);
+            --shadow-focus: 0 0 0 4px rgba(212,175,55,0.3);
+
+            --accent-hover: #e53935;
+            --accent-soft: #331414;
+            --accent-rgb: 212, 175, 55;
+            --accent-dark-rgb: 198, 40, 40;
+            --on-accent2: #1a1206;
+            --on-accent: #fff;
+            --header-bg: rgba(19,15,15,0.92);
+            --badge-bg: #d4af37;
+            --badge-text: #1a1206;
+            --active-zone-bg: #3a1414;
+            --active-zone-bar: #d4af37;
+            --zone-stroke: #e6c14d;
+            --zone-fill-rgb: 198, 40, 40;
+            --hero-bg: #130f0f;
+            --hero-text: #f3ece3;
+            --hero-text2: rgba(243,236,227,0.7);
+            --hero-chip-bg: rgba(255,255,255,0.07);
+            --hero-chip-border: rgba(255,255,255,0.16);
+            --notice-bg: #3a2410;
+            --notice-border: #5c3a14;
+            --notice-text: #e8c887;
+            --danger-soft: #3a2013;
+        }
+
+        /* 🩷 파스텔 테마: 라벤더·피치 톤의 부드러운 밝은 테마 */
+        :root[data-theme="pastel"] {
+            --bg: #f6f2fb;
+            --card: #fffdfc;
+            --border: #e8dced;
+            --accent: #7c6a9c;
+            --accent2: #f3b78c;
+            --text: #4a3f57;
+            --text2: #8c8296;
+            --text3: #b7aec2;
+            --danger: #e07a7a;
+            --warn: #e3b45c;
+            --search-hl: #fdeaa8;
+            --zone-border: rgba(124,106,156,0.85);
+            --ivory-bg: rgba(255,255,255,0.9);
+            --ivory-border: #e8dced;
+            --charcoal: #7c6a9c;
+            --ivory-text: #fff;
+            --charcoal-mute: #8c8296;
+            --shadow-focus: 0 0 0 4px rgba(243,183,140,0.35);
+
+            --accent-hover: #665579;
+            --accent-soft: #f1e9f7;
+            --accent-rgb: 243, 183, 140;
+            --accent-dark-rgb: 124, 106, 156;
+            --on-accent2: #5a3a28;
+            --on-accent: #fff;
+            --header-bg: rgba(246,242,251,0.88);
+            --badge-bg: #f3b78c;
+            --badge-text: #5a3a28;
+            --active-zone-bg: #fdf1cf;
+            --active-zone-bar: #cf9f5a;
+            --zone-stroke: #9b7fc7;
+            --zone-fill-rgb: 124, 106, 156;
+            --hero-bg: #7c6a9c;
+            --hero-text: #ffffff;
+            --hero-text2: rgba(255,255,255,0.78);
+            --hero-chip-bg: rgba(255,255,255,0.16);
+            --hero-chip-border: rgba(255,255,255,0.3);
+            --notice-bg: #fbe4cf;
+            --notice-border: #f0cda0;
+            --notice-text: #8a5a26;
+            --danger-soft: #f9dede;
         }
 
         /* 🟡🔵 옐로우 & 네이비 테마: 노란 헤더 + 네이비 주요 버튼 + 노란 강조 */
@@ -295,19 +445,19 @@
             border: 1px solid transparent; display: flex; align-items: center; justify-content: center; gap: 6px;
             cursor: pointer; transition: all 0.2s var(--ease); min-width: 90px; box-shadow: var(--shadow-xs);
         }
-        #mainModeBtn.view-mode { background: #ffffff; color: var(--accent); border-color: var(--accent2); }
+        #mainModeBtn.view-mode { background: var(--card); color: var(--accent); border-color: var(--accent2); }
         #mainModeBtn:active { transform: scale(0.96); }
 
         .fab-btn {
             width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--ivory-border);
-            background: #ffffff; color: var(--charcoal-mute); font-size: 14px; font-weight: 700;
+            background: var(--card); color: var(--charcoal-mute); font-size: 14px; font-weight: 700;
             display: flex; align-items: center; justify-content: center; cursor: pointer;
             transition: all 0.2s var(--ease); box-shadow: var(--shadow-xs);
         }
         @media (hover: hover) { .fab-btn:hover { background: var(--charcoal); color: var(--ivory-text); border-color: var(--charcoal); box-shadow: var(--shadow-sm); } }
         .fab-btn:active { transform: scale(0.92); }
 
-        #undoBtn { background: #f4f1ea; color: #cccbca; border-color: var(--ivory-border); cursor: not-allowed; box-shadow: none; }
+        #undoBtn { background: var(--bg); color: var(--text3); border-color: var(--ivory-border); cursor: not-allowed; box-shadow: none; }
 
         #modal, #guideModal, #settingsModal {
             display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -333,7 +483,7 @@
             box-shadow: var(--shadow-xs);
         }
         .btn-base:active { transform: scale(0.97); }
-        .btn-primary { background: var(--accent); color: #fff; box-shadow: var(--shadow-sm); }
+        .btn-primary { background: var(--accent); color: var(--on-accent); box-shadow: var(--shadow-sm); }
         @media (hover: hover) { .btn-primary:hover { background: var(--accent-hover); box-shadow: var(--shadow-md); } }
 
         /* 텍스트만 있던 저장/삭제/닫기류 — 옅은 배경의 알약형 칩으로 눌러볼 수 있게 표시 */
@@ -429,7 +579,7 @@
         .sample-banner {
             display: flex; align-items: center; justify-content: space-between; gap: 8px;
             padding: 8px 8px 8px 14px; margin-bottom: 16px; border-radius: var(--radius-md);
-            background: #fff8e8; border: 1px solid #f1dfb4; font-size: 13px; color: var(--text2);
+            background: var(--notice-bg); border: 1px solid var(--notice-border); font-size: 13px; color: var(--text2);
         }
         .search-bar .app-brand { flex-shrink: 0; }
         @media (max-width: 600px) {
@@ -442,11 +592,12 @@
         /* 🎨 테마 선택 */
         .theme-picker { margin-bottom: 16px; }
         .theme-picker-label { font-weight: 600; font-size: 12px; color: var(--accent); margin-bottom: 8px; }
-        .theme-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .theme-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
         .theme-option {
             display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 8px; min-height: 76px;
             background: var(--card); border: 2px solid var(--border); border-radius: var(--radius-md);
             font: inherit; font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer;
+            word-break: keep-all; line-height: 1.35; text-align: center;
         }
         .theme-option[aria-checked="true"] { border-color: var(--accent); box-shadow: var(--shadow-focus); }
         .theme-swatch { display: flex; }
@@ -456,7 +607,7 @@
         /* 📋 사진 아래 구역 목록: 사진의 번호와 같은 번호로 연결 */
         .zl-head { display: flex; align-items: center; gap: 8px; }
         .zl-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: none; border: 0; padding: 4px 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
-        .zl-num { width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+        .zl-num { width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; font-variant-numeric: tabular-nums; }
         .zone-item.active .zl-num { background: var(--danger); }
         .zl-name { font-size: 14px; font-weight: 700; color: var(--text); }
         .zl-edit { flex-shrink: 0; }
@@ -554,7 +705,7 @@
         .zm-item.is-checked .zm-check { background: var(--accent); border-color: var(--accent); }
         .zm-item.is-checked .zm-check::after {
             content: ''; position: absolute; left: 6px; top: 2px; width: 6px; height: 11px;
-            border: solid #fff; border-width: 0 2.5px 2.5px 0; transform: rotate(45deg);
+            border: solid var(--on-accent); border-width: 0 2.5px 2.5px 0; transform: rotate(45deg);
         }
         .zm-item-main input:focus-visible + .zm-check { box-shadow: var(--shadow-focus); }
         .zm-item-name { font-size: 15px; font-weight: 500; color: var(--text); word-break: keep-all; }
@@ -598,7 +749,7 @@
         .zm-item-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
         .zm-item-text small { font-size: 12px; font-weight: 500; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .zm-tag { flex-shrink: 0; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: var(--radius-pill); background: var(--bg); color: var(--text2); border: 1px solid var(--border); }
-        .zm-tag.is-new { background: #fff8e8; color: #9a6b12; border-color: #f1dfb4; }
+        .zm-tag.is-new { background: var(--notice-bg); color: var(--notice-text); border-color: var(--notice-border); }
 
         .zm-foot {
             display: flex; gap: 8px; padding: 12px 16px; flex-shrink: 0; border-top: 1px solid var(--border); background: var(--card);
@@ -668,7 +819,7 @@
         .sheet-row-text b { font-size: 14px; color: var(--text); }
         .sheet-row-text small { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .sheet-row-chevron { color: var(--text3); }
-        .sheet-row-icon { width: 44px; height: 44px; border-radius: 8px; background: #fbeaea; color: var(--danger); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+        .sheet-row-icon { width: 44px; height: 44px; border-radius: 8px; background: var(--danger-soft); color: var(--danger); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
         .sheet-row-danger .sheet-row-text b { color: var(--danger); }
         .sheet-empty { padding: 32px 16px; text-align: center; font-size: 13px; color: var(--text3); line-height: 1.7; }
 
@@ -721,28 +872,28 @@
         <ul style="padding-left: 10px; margin: 0; font-size: 13px; color: var(--text2); line-height: 1.8;">
             <ul style="list-style: none; padding: 0;">
               <li style="margin-bottom: 12px;">
-                <i class="ti ti-camera" style="margin-right: 5px; color: #555;"></i>
+                <i class="ti ti-camera" style="margin-right: 5px; color: var(--text2);"></i>
                 <b>사진 등록:</b> 매장 창고나 비품실 사진을 올려주세요.
               </li>
 
               <li style="margin-bottom: 12px;">
-                <i class="ti ti-pencil-minus" style="margin-right: 5px; color: #555;"></i>
+                <i class="ti ti-pencil-minus" style="margin-right: 5px; color: var(--text2);"></i>
                 <b>구역 수정:</b> 화면 오른쪽 아래 <b>[읽기전용]</b>을 눌러 <b>[편집모드]</b>로 변경. 드래그해서 구역을 그릴 수 있습니다.
               </li>
 
               <li style="margin-bottom: 12px;">
-                <i class="ti ti-robot" style="margin-right: 5px; color: #555;"></i>
+                <i class="ti ti-robot" style="margin-right: 5px; color: var(--text2);"></i>
                 <b>AI 자동 분석:</b> 이게 귀찮으면 사진 등록 후 <b>[AI 분석]</b>을 누르면 수납 구역을 자동으로 찾아줍니다.
                 <span style="display: block; font-size: 11px; color: var(--text3); margin-top: 2px;">분석할 때 사진만 외부 AI 서버로 전송돼요.</span>
               </li>
 
               <li style="margin-bottom: 12px;">
-                <i class="ti ti-search" style="margin-right: 5px; color: #555;"></i>
+                <i class="ti ti-search" style="margin-right: 5px; color: var(--text2);"></i>
                 <b>비품 검색:</b> 상단 검색창이나 <b>[마이크 아이콘]</b>으로 등록해둔 물건을 찾으세요.
               </li>
 
               <li style="margin-bottom: 12px;">
-                <i class="ti ti-file-export" style="margin-right: 5px; color: #555;"></i>
+                <i class="ti ti-file-export" style="margin-right: 5px; color: var(--text2);"></i>
                 <b>PDF 출력:</b> 편집한 내용을 PDF로 출력 할 수 있어요.
               </li>
             </ul>
@@ -753,7 +904,7 @@
         24시간 동안 다시 보지 않기
     </label>
     <div style="display: flex; gap: 8px; width: 100%;">
-        <button onclick="closeGuideModal(); openVideoGuideModal();" class="btn-base" style="background: white; border: 1px solid var(--accent); color: var(--accent); flex: 1;"><i class="ti ti-video" style="margin-right: 4px; font-size: 16px;"></i> 영상보기</button>
+        <button onclick="closeGuideModal(); openVideoGuideModal();" class="btn-base" style="background: var(--card); border: 1px solid var(--accent); color: var(--accent); flex: 1;"><i class="ti ti-video" style="margin-right: 4px; font-size: 16px;"></i> 영상보기</button>
         <button onclick="closeGuideModal();" class="btn-base btn-primary" style="flex: 1.5;">확인했습니다, 시작하기!</button>
     </div>
 </div>
@@ -964,6 +1115,18 @@
                 <span class="theme-swatch"><i style="background:#f8f6f1"></i><i style="background:#2d6a4f"></i><i style="background:#52b788"></i></span>
                 <span>그린 &amp; 아이보리</span>
             </button>
+            <button type="button" class="theme-option" data-theme-value="dark" role="radio" onclick="setTheme('dark')">
+                <span class="theme-swatch"><i style="background:#0f0f10"></i><i style="background:#ffd200"></i><i style="background:#2c2c30"></i></span>
+                <span>블랙 &amp; 옐로우</span>
+            </button>
+            <button type="button" class="theme-option" data-theme-value="redblack" role="radio" onclick="setTheme('redblack')">
+                <span class="theme-swatch"><i style="background:#130f0f"></i><i style="background:#c62828"></i><i style="background:#d4af37"></i></span>
+                <span>블랙 &amp; 레드</span>
+            </button>
+            <button type="button" class="theme-option" data-theme-value="pastel" role="radio" onclick="setTheme('pastel')">
+                <span class="theme-swatch"><i style="background:#f6f2fb"></i><i style="background:#7c6a9c"></i><i style="background:#f3b78c"></i></span>
+                <span>파스텔</span>
+            </button>
         </div>
     </div>
     <div style="margin-bottom: 20px; padding: 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
@@ -979,8 +1142,8 @@
         <button class="btn-settings-item btn-base btn-primary" onclick="applyIndustryTemplate()" style="width: 100%;">선택한 업종의 필수 항목 적용하기</button>
     </div>
     <div style="display: flex; flex-direction: column; gap: 6px;">
-        <button class="btn-settings-item btn-base" onclick="exportSystemData()" style="background: white; border: 1px solid var(--accent); color: var(--accent);"><i class="ti ti-download"></i> 현재 데이터 백업 파일 받기</button>
-        <button class="btn-settings-item btn-base" onclick="document.getElementById('backupFileInput').click()" style="background: white; border: 1px solid var(--accent2); color: var(--accent);"><i class="ti ti-upload"></i> 백업 파일로 복구하기</button>
+        <button class="btn-settings-item btn-base" onclick="exportSystemData()" style="background: var(--card); border: 1px solid var(--accent); color: var(--accent);"><i class="ti ti-download"></i> 현재 데이터 백업 파일 받기</button>
+        <button class="btn-settings-item btn-base" onclick="document.getElementById('backupFileInput').click()" style="background: var(--card); border: 1px solid var(--accent2); color: var(--accent);"><i class="ti ti-upload"></i> 백업 파일로 복구하기</button>
         <input type="file" id="backupFileInput" accept=".json" style="display:none" onchange="importSystemData(this)">
     </div>
 </div>
@@ -1440,7 +1603,7 @@
     let themeColors = {};
     function readThemeColors() {
         const cs = getComputedStyle(document.documentElement), v = (n) => cs.getPropertyValue(n).trim();
-        themeColors = { bg: v('--bg'), accent: v('--accent'), accent2: v('--accent2'), accentRgb: v('--accent-rgb'), zoneStroke: v('--zone-stroke'), zoneFillRgb: v('--zone-fill-rgb') };
+        themeColors = { bg: v('--bg'), onAccent: v('--on-accent'), accent: v('--accent'), accent2: v('--accent2'), accentRgb: v('--accent-rgb'), zoneStroke: v('--zone-stroke'), zoneFillRgb: v('--zone-fill-rgb') };
     }
     readThemeColors();
 
@@ -1460,8 +1623,8 @@
     }
     function updateUndoButtonState() {
         const btn = document.getElementById('undoBtn'); if (!btn) return;
-        if (historyStack.length > 0) { btn.disabled = false; btn.style.background = "#ffffff"; btn.style.color = "var(--charcoal-mute)"; btn.style.cursor = "pointer"; btn.style.borderColor = "var(--ivory-border)"; }
-        else { btn.disabled = true; btn.style.background = "#f4f1ea"; btn.style.color = "#cccbca"; btn.style.cursor = "not-allowed"; btn.style.borderColor = "var(--ivory-border)"; }
+        if (historyStack.length > 0) { btn.disabled = false; btn.style.background = "var(--card)"; btn.style.color = "var(--charcoal-mute)"; btn.style.cursor = "pointer"; btn.style.borderColor = "var(--ivory-border)"; }
+        else { btn.disabled = true; btn.style.background = "var(--bg)"; btn.style.color = "var(--text3)"; btn.style.cursor = "not-allowed"; btn.style.borderColor = "var(--ivory-border)"; }
     }
     function expandZoneList(dataId) { const listDiv = document.getElementById('list-' + dataId); const arrow = document.getElementById('arrow-' + dataId); if (listDiv) { listDiv.style.display = "block"; if (arrow) arrow.innerText = "▼ 리스트 접기"; } }
 
@@ -1569,7 +1732,7 @@
     }
 
     // 🎨 화면 테마 전환 (기본 옐로우 & 네이비 / 그린 & 아이보리) — 저장해 두고 다음 접속에도 유지. 그린의 저장값은 호환을 위해 'default' 유지
-    const THEME_META_COLORS = { default: '#f8f6f1', yellow: '#ffd200' };
+    const THEME_META_COLORS = { default: '#f8f6f1', yellow: '#ffd200', dark: '#0f0f10', redblack: '#130f0f', pastel: '#f6f2fb' };
     function setTheme(name) {
         if (name === 'default') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = name;
         try { localStorage.setItem('uiTheme', name); } catch (e) {}
@@ -1678,7 +1841,7 @@
         document.getElementById('zoneItemCount').textContent = n ? `${n}개 선택` : '';
     }
 
-    function toggleDetails() { showDetails = !showDetails; const btn = document.getElementById('detailToggleBtn'); if (btn) { btn.style.background = showDetails ? 'var(--charcoal)' : '#ffffff'; btn.style.color = showDetails ? 'var(--ivory-text)' : 'var(--charcoal-mute)'; btn.style.borderColor = showDetails ? 'var(--charcoal)' : 'var(--ivory-border)'; } imageList.forEach(data => render(data)); }
+    function toggleDetails() { showDetails = !showDetails; const btn = document.getElementById('detailToggleBtn'); if (btn) { btn.style.background = showDetails ? 'var(--charcoal)' : 'var(--card)'; btn.style.color = showDetails ? 'var(--ivory-text)' : 'var(--charcoal-mute)'; btn.style.borderColor = showDetails ? 'var(--charcoal)' : 'var(--ivory-border)'; } imageList.forEach(data => render(data)); }
     function editZone(dataId, index) { activeData = imageList.find(d => d.id == dataId); activeZone = activeData.zones[index]; expandZoneList(dataId); showSearchArrow = false; openModal(activeZone); render(activeData); }
 
     function createNewCanvasElement(data) {
@@ -1858,7 +2021,7 @@
         ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.fillStyle = isActive ? '#c44444' : themeColors.accent; ctx.fill();
         ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
-        ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.round(r * 1.1)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = isActive ? '#fff' : themeColors.onAccent; ctx.font = `bold ${Math.round(r * 1.1)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(String(n), cx, cy + 1);
 
         const small = Math.round(fs * 0.78);
@@ -2064,7 +2227,7 @@
             const text = "📦 " + holdingItem.item.name; const boxW = ctx.measureText(text).width + 40, boxH = dragFontSize + 24;
             let dragX = mousePos.x, dragY = mousePos.y - 70;
             ctx.beginPath(); drawSafeRoundRect(ctx, dragX - boxW/2, dragY - boxH/2, boxW, boxH, 18); ctx.fill(); ctx.stroke();
-            ctx.fillStyle = 'white'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, dragX, dragY); ctx.restore();
+            ctx.fillStyle = themeColors.onAccent; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, dragX, dragY); ctx.restore();
         }
 
         const listContainer = document.getElementById('list-' + data.id);
