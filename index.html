@@ -1917,8 +1917,8 @@
                 <h3 id="title-${data.id}" style="margin:0; font-size:16px; color: var(--accent-text); cursor: pointer; flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" onclick="renameImage('${data.id}')">${data.title}</h3>
                 <div style="display: flex; gap: 6px; flex-shrink: 0;">
                     <button id="aiBtn-${data.id}" onclick="runAIAnalysis('${data.id}')" class="btn-xs is-accent"><i class="ti ti-sparkles"></i> AI 분석</button>
-                    <button onclick="downloadReportAsPDF()" class="btn-xs"><i class="ti ti-file-export"></i> PDF</button>
                     <button onclick="deleteImage('${data.id}')" class="btn-xs is-danger is-icon" title="사진 삭제" aria-label="사진 삭제"><i class="ti ti-trash"></i></button>
+                    <button onclick="downloadReportAsPDF()" class="btn-xs btn-quiet is-icon" title="PDF로 내보내기" aria-label="PDF로 내보내기"><i class="ti ti-file-export"></i></button>
                 </div>
             </div><hr style="border: 0; border-top: 1px solid var(--border); margin-top: 8px;">`;
 
