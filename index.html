@@ -80,6 +80,7 @@
             --notice-border: #f1dfb4;
             --notice-text: #9a6b12;
             --danger-soft: #fbeaea;
+            --accent-text: var(--accent);  /* 텍스트로 쓰는 강조색 — 어두운 카드 위에서 --accent 자체가 흐리게 읽히는 테마만 덮어씀 */
         }
 
         /* ⚫🟡 블랙 & 옐로우 테마: 검정 바탕 + 노란 강조 (어두운 매장·야간에도 눈부시지 않게) */
@@ -87,7 +88,7 @@
             color-scheme: dark;
             --bg: #0f0f10;
             --card: #1b1b1d;
-            --border: #2e2e32;
+            --border: #7a7a7f;
             --accent: #ffd200;
             --accent2: #e6bd00;
             --text: #f2f2ef;
@@ -98,7 +99,7 @@
             --search-hl: #5a4a00;
             --zone-border: rgba(255,210,0,0.85);
             --ivory-bg: rgba(27,27,29,0.92);
-            --ivory-border: #2e2e32;
+            --ivory-border: #7a7a7f;
             --charcoal: #2c2c30;
             --ivory-text: #f2f2ef;
             --charcoal-mute: #b6b6b0;
@@ -137,7 +138,7 @@
             color-scheme: dark;
             --bg: #130f0f;
             --card: #1f1616;
-            --border: #3d2626;
+            --border: #a07070;
             --accent: #c62828;
             --accent2: #d4af37;
             --text: #f3ece3;
@@ -148,7 +149,7 @@
             --search-hl: #4a2f10;
             --zone-border: rgba(198,40,40,0.85);
             --ivory-bg: rgba(31,22,22,0.92);
-            --ivory-border: #3d2626;
+            --ivory-border: #a07070;
             --charcoal: #2a1c1c;
             --ivory-text: #f3ece3;
             --charcoal-mute: #c9b8ae;
@@ -180,6 +181,7 @@
             --notice-border: #5c3a14;
             --notice-text: #e8c887;
             --danger-soft: #3a2013;
+            --accent-text: #ec5b5b;  /* 카드 위에서 훨씬 또렷하게 읽히는 밝은 빨강 (주요 버튼의 --accent는 그대로 유지) */
         }
 
         /* 🩷 파스텔 테마: 라벤더·피치 톤의 부드러운 밝은 테마 */
@@ -288,7 +290,7 @@
         }
 
         .content-wrapper { padding: 20px; margin-bottom: 160px; }
-        .app-brand { font-size: 18px; font-weight: 800; color: var(--accent); white-space: nowrap; user-select: none; letter-spacing: -0.2px; }
+        .app-brand { font-size: 18px; font-weight: 800; color: var(--accent-text); white-space: nowrap; user-select: none; letter-spacing: -0.2px; }
 
         .search-input-wrap {
             width: 50%; position: relative; display: flex; align-items: center; gap: 4px;
@@ -385,7 +387,7 @@
         .search-dropdown-item:last-child { border-bottom: none; }
         .search-dropdown-item mark { background: var(--search-hl); color: inherit; border-radius: 3px; padding: 0 1px; }
         .search-thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border); flex-shrink: 0; background: var(--bg); }
-        .search-result-title { font-weight: 600; font-size: 13px; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .search-result-title { font-weight: 600; font-size: 13px; color: var(--accent-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .search-result-sub { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .search-result-sub2 { font-size: 11px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -422,7 +424,7 @@
             border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text2);
             font-size: 16px; flex-shrink: 0; transition: background 0.2s var(--ease), color 0.2s var(--ease);
         }
-        @media (hover: hover) { .icon-btn:hover { background: var(--accent-soft); color: var(--accent); } }
+        @media (hover: hover) { .icon-btn:hover { background: var(--accent-soft); color: var(--accent-text); } }
 
         .image-section { background: var(--card); padding: 20px; margin-bottom: 24px; border-radius: var(--radius-lg); border: 1px solid rgba(224,219,208,0.6); box-shadow: var(--shadow-sm); position: relative; }
         canvas { border: 1px solid var(--border); border-radius: var(--radius-sm); max-width: 100%; display: block; margin: 10px auto; cursor: crosshair; transition: border-color 0.3s; }
@@ -445,7 +447,7 @@
             border: 1px solid transparent; display: flex; align-items: center; justify-content: center; gap: 6px;
             cursor: pointer; transition: all 0.2s var(--ease); min-width: 90px; box-shadow: var(--shadow-xs);
         }
-        #mainModeBtn.view-mode { background: var(--card); color: var(--accent); border-color: var(--accent2); }
+        #mainModeBtn.view-mode { background: var(--card); color: var(--accent-text); border-color: var(--accent2); }
         #mainModeBtn:active { transform: scale(0.96); }
 
         .fab-btn {
@@ -564,11 +566,11 @@
         /* ─────────────────────────────────────────────────────────
            🔘 버튼 위계 통일: 주(primary) · 보조(secondary) · 조용한(quiet) · 위험(is-danger)
            ───────────────────────────────────────────────────────── */
-        .btn-secondary { background: var(--card); color: var(--accent); border: 1px solid var(--accent2); }
+        .btn-secondary { background: var(--card); color: var(--accent-text); border: 1px solid var(--accent2); }
         .btn-quiet { background: var(--bg); color: var(--text2); border: 1px solid var(--border); box-shadow: none; }
         .btn-lg { min-height: 48px; font-size: 14px; border-radius: var(--radius-md); }
         .btn-xs { display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
-        .btn-xs.is-accent { color: var(--accent); border-color: var(--accent2); }
+        .btn-xs.is-accent { color: var(--accent-text); border-color: var(--accent2); }
         .btn-xs.is-danger { color: var(--danger); }
         .btn-xs.is-icon { padding-left: 0; padding-right: 0; width: 30px; }
         @media (hover: hover) {
@@ -591,7 +593,7 @@
 
         /* 🎨 테마 선택 */
         .theme-picker { margin-bottom: 16px; }
-        .theme-picker-label { font-weight: 600; font-size: 12px; color: var(--accent); margin-bottom: 8px; }
+        .theme-picker-label { font-weight: 600; font-size: 12px; color: var(--accent-text); margin-bottom: 8px; }
         .theme-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
         .theme-option {
             display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 8px; min-height: 76px;
@@ -599,7 +601,7 @@
             font: inherit; font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer;
             word-break: keep-all; line-height: 1.35; text-align: center;
         }
-        .theme-option[aria-checked="true"] { border-color: var(--accent); box-shadow: var(--shadow-focus); }
+        .theme-option[aria-checked="true"] { border-color: var(--accent-text); box-shadow: var(--shadow-focus); }
         .theme-swatch { display: flex; }
         .theme-swatch i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff; margin-left: -6px; box-shadow: 0 0 0 1px rgba(0,0,0,0.08); }
         .theme-swatch i:first-child { margin-left: 0; }
@@ -640,7 +642,7 @@
             display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 4px;
             background: var(--bg); border-radius: var(--radius-md); font-size: 12px; color: var(--text2);
         }
-        .welcome-steps i { font-size: 24px; color: var(--accent); margin-bottom: 4px; }
+        .welcome-steps i { font-size: 24px; color: var(--accent-text); margin-bottom: 4px; }
         .welcome-steps b { font-size: 14px; color: var(--text); }
         .welcome-steps span { word-break: keep-all; }
         .welcome-actions { display: flex; flex-direction: column; gap: 8px; max-width: 360px; margin: 0 auto; }
@@ -690,7 +692,7 @@
 
         .zm-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 16px 20px 20px; }
         .zm-section-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; font-size: 13px; font-weight: 700; color: var(--text); }
-        .zm-count { font-size: 12px; font-weight: 600; color: var(--accent); }
+        .zm-count { font-size: 12px; font-weight: 600; color: var(--accent-text); }
         .zm-items { display: flex; flex-direction: column; gap: 8px; }
 
         /* 물건 한 줄 = 누르는 영역 전체(뱃지)가 체크박스 */
@@ -709,7 +711,7 @@
         }
         .zm-item-main input:focus-visible + .zm-check { box-shadow: var(--shadow-focus); }
         .zm-item-name { font-size: 15px; font-weight: 500; color: var(--text); word-break: keep-all; }
-        .zm-item.is-checked .zm-item-name { font-weight: 700; color: var(--accent); }
+        .zm-item.is-checked .zm-item-name { font-weight: 700; color: var(--accent-text); }
         .zm-item .cmt { display: none; }
         .zm-item.is-checked .cmt { display: block; width: calc(100% - 28px); margin: 0 14px 12px; background: var(--card); }
 
@@ -734,7 +736,7 @@
         .zm-add-new {
             width: 100%; min-height: 48px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; padding: 0 14px;
             background: var(--card); border: 1px dashed var(--accent2); border-radius: var(--radius-sm);
-            font: inherit; font-size: 15px; font-weight: 600; color: var(--accent); cursor: pointer; text-align: left;
+            font: inherit; font-size: 15px; font-weight: 600; color: var(--accent-text); cursor: pointer; text-align: left;
         }
         .zm-add-new-icon { width: 22px; height: 22px; border-radius: 6px; background: var(--accent2); color: var(--on-accent2); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
         .zm-add-new[hidden], .zm-item[hidden], .zm-review[hidden] { display: none !important; }
@@ -744,7 +746,7 @@
         .zm-review-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 20px 16px 14px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
         .zm-review-head h3 { font-size: 17px; line-height: 1.4; }
         .zm-review-head p { font-size: 12px; color: var(--text2); margin-top: 2px; }
-        .zm-review-retry { min-height: 40px; padding: 0 12px; font-size: 13px; flex-shrink: 0; color: var(--accent); }
+        .zm-review-retry { min-height: 40px; padding: 0 12px; font-size: 13px; flex-shrink: 0; color: var(--accent-text); }
         .zm-review-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 16px 20px; display: flex; flex-direction: column; gap: 8px; }
         .zm-item-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
         .zm-item-text small { font-size: 12px; font-weight: 500; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -769,7 +771,7 @@
         body.found-pill-open .found-pill { transform: none; opacity: 1; pointer-events: auto; }
         .found-pill-main {
             display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 4px 0 16px; min-width: 0;
-            background: none; border: none; font-size: 14px; font-weight: 600; color: var(--accent); cursor: pointer;
+            background: none; border: none; font-size: 14px; font-weight: 600; color: var(--accent-text); cursor: pointer;
         }
         .found-pill-main span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .found-pill-main i { font-size: 18px; flex-shrink: 0; }
@@ -867,7 +869,7 @@
 <div id="editOverlay"></div>
 
 <div id="guideModal" style="display:block; line-height: 1.6;">
-    <h2 style="text-align: center; color: var(--accent); margin-bottom: 16px; font-size: 1.25em;">1분 만에 끝내는 매장 지도 만들기</h2>
+    <h2 style="text-align: center; color: var(--accent-text); margin-bottom: 16px; font-size: 1.25em;">1분 만에 끝내는 매장 지도 만들기</h2>
     <div style="background: var(--bg); border: 1px solid var(--border); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
         <ul style="padding-left: 10px; margin: 0; font-size: 13px; color: var(--text2); line-height: 1.8;">
             <ul style="list-style: none; padding: 0;">
@@ -904,7 +906,7 @@
         24시간 동안 다시 보지 않기
     </label>
     <div style="display: flex; gap: 8px; width: 100%;">
-        <button onclick="closeGuideModal(); openVideoGuideModal();" class="btn-base" style="background: var(--card); border: 1px solid var(--accent); color: var(--accent); flex: 1;"><i class="ti ti-video" style="margin-right: 4px; font-size: 16px;"></i> 영상보기</button>
+        <button onclick="closeGuideModal(); openVideoGuideModal();" class="btn-base" style="background: var(--card); border: 1px solid var(--accent-text); color: var(--accent-text); flex: 1;"><i class="ti ti-video" style="margin-right: 4px; font-size: 16px;"></i> 영상보기</button>
         <button onclick="closeGuideModal();" class="btn-base btn-primary" style="flex: 1.5;">확인했습니다, 시작하기!</button>
     </div>
 </div>
@@ -1130,7 +1132,7 @@
         </div>
     </div>
     <div style="margin-bottom: 20px; padding: 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
-        <label style="font-weight: 600; font-size: 12px; color: var(--accent); display: block; margin-bottom: 8px;">업종별 기본 품목 원클릭 세팅</label>
+        <label style="font-weight: 600; font-size: 12px; color: var(--accent-text); display: block; margin-bottom: 8px;">업종별 기본 품목 원클릭 세팅</label>
         <select id="industrySelect" style="margin-bottom: 8px;">
             <option value="cafe">☕ 카페 / 디저트 점포</option>
             <option value="pharmacy">💊 약국 / 조제실</option>
@@ -1142,8 +1144,8 @@
         <button class="btn-settings-item btn-base btn-primary" onclick="applyIndustryTemplate()" style="width: 100%;">선택한 업종의 필수 항목 적용하기</button>
     </div>
     <div style="display: flex; flex-direction: column; gap: 6px;">
-        <button class="btn-settings-item btn-base" onclick="exportSystemData()" style="background: var(--card); border: 1px solid var(--accent); color: var(--accent);"><i class="ti ti-download"></i> 현재 데이터 백업 파일 받기</button>
-        <button class="btn-settings-item btn-base" onclick="document.getElementById('backupFileInput').click()" style="background: var(--card); border: 1px solid var(--accent2); color: var(--accent);"><i class="ti ti-upload"></i> 백업 파일로 복구하기</button>
+        <button class="btn-settings-item btn-base" onclick="exportSystemData()" style="background: var(--card); border: 1px solid var(--accent-text); color: var(--accent-text);"><i class="ti ti-download"></i> 현재 데이터 백업 파일 받기</button>
+        <button class="btn-settings-item btn-base" onclick="document.getElementById('backupFileInput').click()" style="background: var(--card); border: 1px solid var(--accent2); color: var(--accent-text);"><i class="ti ti-upload"></i> 백업 파일로 복구하기</button>
         <input type="file" id="backupFileInput" accept=".json" style="display:none" onchange="importSystemData(this)">
     </div>
 </div>
@@ -1850,7 +1852,7 @@
         const headerContainer = document.createElement('div'); headerContainer.style.cssText = "margin-bottom: 8px;";
         headerContainer.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 5px;">
-                <h3 id="title-${data.id}" style="margin:0; font-size:16px; color: var(--accent); cursor: pointer; flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" onclick="renameImage('${data.id}')">${data.title}</h3>
+                <h3 id="title-${data.id}" style="margin:0; font-size:16px; color: var(--accent-text); cursor: pointer; flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" onclick="renameImage('${data.id}')">${data.title}</h3>
                 <div style="display: flex; gap: 6px; flex-shrink: 0;">
                     <button id="aiBtn-${data.id}" onclick="runAIAnalysis('${data.id}')" class="btn-xs is-accent"><i class="ti ti-sparkles"></i> AI 분석</button>
                     <button onclick="downloadReportAsPDF()" class="btn-xs"><i class="ti ti-file-export"></i> PDF</button>
@@ -3046,71 +3048,154 @@
 
     function renameImage(dataId) { const data = imageList.find(d => d.id == dataId); const newName = prompt("사진 이름을 입력하세요:", data.title); if (newName) { data.title = newName; const titleEl = document.getElementById(`title-${data.id}`); if (titleEl) titleEl.innerHTML = `${newName}`; saveData(); } }
     function deleteImage(dataId) { if (confirm("이 사진과 포함된 모든 구역을 삭제하시겠습니까?")) { if (activeData && activeData.id == dataId) { activeData = null; activeZone = null; showSearchArrow = false; } imageList = imageList.filter(d => d.id != dataId); saveData(); document.getElementById('canvasList').innerHTML = ""; if (imageList.length === 0) { document.getElementById('emptyGuide').style.display = 'block'; } else { imageList.forEach(data => createNewCanvasElement(data)); } } }
+    // ────────────────────────────────────────────────────────────
+    // 🖨 인쇄용 창고 지도: 화면 캡처(html2canvas) 대신 페이지를 캔버스에 직접 그려서 이미지로 넣는다.
+    //    jsPDF 내장 폰트(Helvetica)는 한글 글리프가 없어 doc.text()로 한글을 쓰면 글자가 깨지므로
+    //    (숫자·기호까지 같이 깨지는 걸 실측으로 확인) 제목·범례까지 전부 캔버스 텍스트로 그린다.
+    //    사진 위에는 번호만 남기고(말풍선·개수 표시 없이), 물건 목록은 그 아래 번호별 범례로 분리한다.
+    // ────────────────────────────────────────────────────────────
+    const PRINT = { pageWmm: 210, pageHmm: 297, marginMm: 14, pxPerMm: 8, ink: '#1a1a18', sub: '#6b6960', line: '#e0dbd0' };
+    function printPx(mm) { return Math.round(mm * PRINT.pxPerMm); }
+
+    // 캔버스 텍스트 줄바꿈: ctx.measureText로 폭을 재서 maxW 안에 들어오게 나눈다 (한글은 글자 단위로도 자를 수 있게)
+    function wrapCanvasText(ctx, text, maxW) {
+        const words = text.split(/(\s+)/).filter(w => w !== ''); // 공백을 유지한 채 분리
+        const lines = []; let line = '';
+        const pushHard = (chunk) => { // 단어 하나가 그 자체로 maxW보다 길면 글자 단위로 강제 개행
+            let cur = '';
+            for (const ch of chunk) {
+                if (cur && ctx.measureText(cur + ch).width > maxW) { lines.push(cur); cur = ch; } else cur += ch;
+            }
+            return cur;
+        };
+        for (const word of words) {
+            const attempt = line + word;
+            if (ctx.measureText(attempt).width <= maxW) { line = attempt; continue; }
+            if (line) lines.push(line);
+            line = ctx.measureText(word).width > maxW ? pushHard(word) : word;
+        }
+        if (line) lines.push(line);
+        return lines.length ? lines : [''];
+    }
+
+    // 구역 사진 부분: 번호 배지 + 이중 테두리만 그린다 (개수 표시는 아래 범례가 대신함)
+    function drawPrintPhoto(ctx, data, x, y, w) {
+        const scale = w / data.canvas.width, h = data.canvas.height * scale;
+        ctx.save();
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(x, y, w, h);
+        if (data.img && data.img.src) { try { ctx.drawImage(data.img, x, y, w, h); } catch (e) {} }
+        data.zones.forEach((z, i) => {
+            const zx = x + z.x * scale, zy = y + z.y * scale, zw = z.w * scale, zh = z.h * scale;
+            ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.strokeRect(zx, zy, zw, zh);
+            ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.strokeRect(zx, zy, zw, zh);
+
+            const r = Math.max(printPx(4), Math.round(Math.min(zw, zh) * 0.14)), cx = zx + r + printPx(2), cy = zy + r + printPx(2);
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.fillStyle = PRINT.ink; ctx.fill();
+            ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
+            ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.round(r * 1.15)}px sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(String(i + 1), cx, cy + 1);
+        });
+        ctx.restore();
+        return h;
+    }
+
+    // 한 사진의 인쇄 페이지들을 미리 계산: 제목/사진은 첫 페이지에, 범례는 넘치면 다음 페이지로 이어서.
+    // 실제로 그리기 전에 각 줄의 높이를 먼저 재야 하므로, 측정 전용 캔버스를 하나 만들어 폰트를 맞춰 잰다.
+    function buildPrintPages(data, index, dateStr) {
+        const pageW = printPx(PRINT.pageWmm), pageH = printPx(PRINT.pageHmm), margin = printPx(PRINT.marginMm);
+        const contentW = pageW - margin * 2;
+        const meas = document.createElement('canvas').getContext('2d');
+
+        const titleFont = `bold ${printPx(6)}px sans-serif`, dateFont = `${printPx(3.2)}px sans-serif`;
+        const nameFont = `bold ${printPx(3.9)}px sans-serif`, itemFont = `${printPx(3.5)}px sans-serif`;
+        const nameLineH = printPx(5.2), itemLineH = printPx(4.6), rowGap = printPx(3.5), badgeR = printPx(3.2);
+        const textIndent = badgeR * 2 + printPx(3);
+
+        meas.font = nameFont;
+        const photoH = data.canvas ? data.canvas.height * (contentW / data.canvas.width) : 0;
+        const rows = data.zones.map((z, zi) => {
+            meas.font = nameFont; const nameLines = wrapCanvasText(meas, z.name || `${zi + 1}번 구역`, contentW - textIndent);
+            meas.font = itemFont; const itemText = z.items.length ? z.items.map(it => it.name).join(', ') : '비어 있음';
+            const itemLines = wrapCanvasText(meas, itemText, contentW - textIndent);
+            const h = nameLines.length * nameLineH + itemLines.length * itemLineH + rowGap;
+            return { z, zi, nameLines, itemLines, h };
+        });
+
+        const pages = []; // 각 페이지: { photo: bool, rows: [...] }
+        let page = { photo: true, rows: [] };
+        let y = margin + printPx(11) + photoH + printPx(8); // 제목줄 + 사진 다음 시작 y (첫 페이지 기준)
+        rows.forEach(row => {
+            const limitY = pageH - margin;
+            if (y + row.h > limitY) { pages.push(page); page = { photo: false, rows: [] }; y = margin; }
+            page.rows.push(row); y += row.h;
+        });
+        pages.push(page);
+
+        return pages.map((pg, pgi) => {
+            const canvas = document.createElement('canvas'); canvas.width = pageW; canvas.height = pageH;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, pageW, pageH);
+            let cy = margin;
+
+            ctx.textBaseline = 'alphabetic';
+            ctx.font = titleFont; ctx.fillStyle = PRINT.ink; ctx.textAlign = 'left';
+            ctx.fillText((data.title || `#${index + 1}`) + (pages.length > 1 ? ` (${pgi + 1}/${pages.length})` : ''), margin, cy + printPx(6));
+            ctx.font = dateFont; ctx.fillStyle = PRINT.sub; ctx.textAlign = 'right';
+            ctx.fillText(dateStr, pageW - margin, cy + printPx(6));
+            cy += printPx(11);
+            ctx.strokeStyle = PRINT.ink; ctx.lineWidth = printPx(0.5); ctx.beginPath();
+            ctx.moveTo(margin, cy); ctx.lineTo(pageW - margin, cy); ctx.stroke();
+            cy += printPx(7);
+
+            if (pg.photo && data.canvas) { cy += drawPrintPhoto(ctx, data, margin, cy, contentW) + printPx(8); }
+
+            pg.rows.forEach(row => {
+                ctx.beginPath(); ctx.arc(margin + badgeR, cy + badgeR, badgeR, 0, Math.PI * 2);
+                ctx.fillStyle = PRINT.ink; ctx.fill();
+                ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.round(badgeR * 1.1)}px sans-serif`;
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(String(row.zi + 1), margin + badgeR, cy + badgeR + 1);
+
+                ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+                ctx.font = nameFont; ctx.fillStyle = PRINT.ink;
+                row.nameLines.forEach((line, li) => ctx.fillText(line, margin + textIndent, cy + nameLineH * (li + 1) - printPx(1.2)));
+                let ry = cy + row.nameLines.length * nameLineH;
+                ctx.font = itemFont; ctx.fillStyle = PRINT.sub;
+                row.itemLines.forEach((line, li) => ctx.fillText(line, margin + textIndent, ry + itemLineH * (li + 1) - printPx(1.2)));
+                ry += row.itemLines.length * itemLineH;
+
+                ctx.strokeStyle = PRINT.line; ctx.lineWidth = printPx(0.2); ctx.beginPath();
+                ctx.moveTo(margin, ry + printPx(1.5)); ctx.lineTo(pageW - margin, ry + printPx(1.5)); ctx.stroke();
+                cy = ry + rowGap;
+            });
+
+            return canvas.toDataURL('image/jpeg', 0.92);
+        });
+    }
+
     async function downloadReportAsPDF() {
-        // jsPDF 인스턴스 생성
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('p', 'mm', 'a4');
+        const photos = imageList.filter(d => d.id !== 'dummy_root' && d.canvas);
 
-        // 캡처할 요소들 (각 사진 및 하단 리스트가 포함된 전체 섹션)
-        const sections = document.querySelectorAll('.image-section');
-
-        if (sections.length === 0) {
+        if (photos.length === 0) {
             alert("다운로드할 데이터가 없습니다. 먼저 매장 사진을 등록해주세요.");
             return;
         }
 
         try {
-            for (let i = 0; i < sections.length; i++) {
-                const section = sections[i];
-
-                // 💡 중요: PDF 캡처 전, 리스트가 접혀있다면 모든 내용이 나오도록 강제로 펼칩니다.
-                const dataId = section.id.replace('section-', '');
-                const listContainer = document.getElementById('list-' + dataId);
-                const arrow = document.getElementById('arrow-' + dataId);
-                let wasHidden = false;
-
-                if (listContainer && listContainer.style.display === 'none') {
-                    listContainer.style.display = 'block';
-                    if (arrow) arrow.innerText = "▼ 리스트 접기";
-                    wasHidden = true;
-                }
-
-                // html2canvas를 사용하여 해당 구역의 화면 전체를 고해상도(scale: 2) 이미지로 캡처
-                const canvas = await html2canvas(section, {
-                    scale: 2,
-                    useCORS: true,
-                    backgroundColor: '#ffffff'
+            const today = new Date();
+            const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')} 기준`;
+            let firstPage = true;
+            photos.forEach((data, pi) => {
+                buildPrintPages(data, pi, dateStr).forEach(imgData => {
+                    if (!firstPage) doc.addPage(); else firstPage = false;
+                    doc.addImage(imgData, 'JPEG', 0, 0, PRINT.pageWmm, PRINT.pageHmm);
                 });
-
-                const imgData = canvas.toDataURL('image/jpeg', 1.0);
-
-                // A4 용지 사이즈 및 여백 설정 (단위: mm)
-                const pdfWidth = doc.internal.pageSize.getWidth();
-                const margin = 10; // 좌우 여백 10mm
-                const availableWidth = pdfWidth - (margin * 2);
-
-                // 캡처한 이미지의 비율에 맞춰 PDF 내 렌더링 높이 계산
-                const imgWidth = canvas.width;
-                const imgHeight = canvas.height;
-                const ratio = availableWidth / imgWidth;
-                const renderHeight = imgHeight * ratio;
-
-                // 두 번째 이미지부터는 새 페이지를 추가
-                if (i > 0) doc.addPage();
-
-                // 캡처된 화면을 PDF에 이미지 형태로 삽입
-                doc.addImage(imgData, 'JPEG', margin, margin, availableWidth, renderHeight);
-
-                // 캡처가 끝나면 리스트를 원래 상태(접힘)로 복구
-                if (wasHidden && listContainer) {
-                    listContainer.style.display = 'none';
-                    if (arrow) arrow.innerText = "▲ 리스트 펼치기";
-                }
-            }
-
-            // 완성된 PDF 파일 다운로드
-            doc.save("매장_공간_관리_지도.pdf");
-
+            });
+            doc.save("창고_지도.pdf");
         } catch (error) {
             console.error("PDF 생성 중 오류 발생:", error);
             alert("PDF 생성 중 문제가 발생했습니다.");
