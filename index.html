@@ -280,6 +280,8 @@
 
         *{ box-sizing: border-box; margin: 0; padding: 0; }
 
+        /* 구역 팝업이 페이지 스크롤을 잠가 스크롤바가 사라져도 폭이 그대로이게 스크롤바 자리를 항상 비워 둔다 */
+        html { scrollbar-gutter: stable; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
             background: var(--bg); color: var(--text);
@@ -444,7 +446,8 @@
         .photo-thumb[aria-selected="true"] { border-color: var(--accent-text); color: var(--text); box-shadow: var(--shadow-sm); }
         .photo-thumb[aria-selected="true"] span { color: var(--accent-text); }
         .zl-summary { margin-left: 6px; font-weight: 400; color: var(--text2); }
-        canvas { border: 1px solid var(--border); border-radius: var(--radius-sm); max-width: 100%; display: block; margin: 10px auto; cursor: crosshair; transition: border-color 0.3s; }
+        canvas { border: 1px solid var(--border); border-radius: var(--radius-sm); max-width: 100%; display: block; margin: 10px auto; transition: border-color 0.3s; }
+        body.pick-mode canvas { cursor: pointer; }
 
         .zone-item { padding: 12px 14px; border-bottom: 1px solid var(--border); transition: background 0.2s; background: var(--card); }
         .zone-item:last-child { border-bottom: none; }
@@ -1747,12 +1750,29 @@
     let holdingItem = null, mousePos = { x: 0, y: 0 }, isMovingZone = false, isResizingZone = false, resizeHandle = '';
     let zoneDragOffset = { x: 0, y: 0 }, hasDragged = false, startPointerPos = { x: 0, y: 0 }, showSearchArrow = false;
     const HANDLE_SIZE = 15;
+    // 모서리 손잡이 크기는 화면 픽셀 기준: 마우스는 작게, 손가락은 넓게 (캔버스는 800px 기준이라 화면 배율로 환산)
+    let lastPointerFine = window.matchMedia('(pointer: fine)').matches;
+    function canvasScale(canvas) { const w = canvas.getBoundingClientRect().width; return w ? canvas.width / w : 1; }
+    function handleRadius(canvas) { const s = canvasScale(canvas); return lastPointerFine ? 7 * s : Math.max(HANDLE_SIZE, 18 * s); }
+    // 마우스를 올린 곳에서 할 수 있는 동작을 커서로 보여준다
+    function hoverCursor(data, canvas, x, y) {
+        const inZone = data.zones.some(z => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h);
+        if (!isEditMode) return inZone ? 'pointer' : 'default';
+        const z = activeData === data && data.zones.includes(activeZone) ? activeZone : null;
+        if (z) {
+            const hit = handleRadius(canvas), near = (px, py) => Math.abs(x - px) <= hit && Math.abs(y - py) <= hit;
+            if (near(z.x, z.y) || near(z.x + z.w, z.y + z.h)) return 'nwse-resize';
+            if (near(z.x + z.w, z.y) || near(z.x, z.y + z.h)) return 'nesw-resize';
+        }
+        return inZone ? 'move' : 'crosshair';
+    }
+    function handleDrawHalf(canvas) { return lastPointerFine ? 5 * canvasScale(canvas) : 10; }
 
     // 캔버스는 CSS 변수를 직접 못 쓰므로 현재 테마 색을 읽어 둔다 (테마를 바꾸면 다시 읽음)
     let themeColors = {};
     function readThemeColors() {
         const cs = getComputedStyle(document.documentElement), v = (n) => cs.getPropertyValue(n).trim();
-        themeColors = { bg: v('--bg'), onAccent: v('--on-accent'), accent: v('--accent'), accent2: v('--accent2'), accentRgb: v('--accent-rgb'), zoneStroke: v('--zone-stroke'), zoneFillRgb: v('--zone-fill-rgb') };
+        themeColors = { bg: v('--bg'), onAccent: v('--on-accent'), danger: v('--danger') || '#c44444', accent: v('--accent'), accent2: v('--accent2'), accentRgb: v('--accent-rgb'), zoneStroke: v('--zone-stroke'), zoneFillRgb: v('--zone-fill-rgb') };
     }
     readThemeColors();
 
@@ -1853,6 +1873,11 @@
 
     function toggleEditMode() {
         isEditMode = !isEditMode;
+        // 편집 모드에선 목록 칩이 커져서 위쪽 사진의 목록이 길어진다 → 보던 사진이 밀리지 않게 전환 후 제자리로
+        const line = innerHeight * 0.35;
+        const anchorSec = [...document.querySelectorAll('.image-section')].find(s => s.offsetParent && s.getBoundingClientRect().bottom > line);
+        const anchor = anchorSec && (anchorSec.querySelector('canvas') || anchorSec);
+        const anchorTop = anchor ? anchor.getBoundingClientRect().top : 0;
         const btn = document.getElementById('mainModeBtn'),
               icon = document.getElementById('modeIcon'),
               modeText = document.getElementById('modeText'),
@@ -1882,6 +1907,7 @@
             }
         });
         imageList.forEach(data => render(data));
+        if (anchor) { const moved = anchor.getBoundingClientRect().top - anchorTop; if (Math.abs(moved) > 1) window.scrollBy(0, moved); }
     }
 
     // ────────────────────────────────────────────────────────────
@@ -2159,9 +2185,13 @@
             if (!isEditMode) return;
             pendingHistoryState = cloneZonesState();
 
-            for (let z of data.zones) {
+            // 크기 조절은 손잡이가 그려진 "선택한 구역"에서만: 옆 구역 모서리가 대신 잡히지 않게
+            lastPointerFine = e.pointerType === 'mouse';
+            const z = activeData === data && data.zones.includes(activeZone) ? activeZone : null;
+            if (z) {
+                const hit = handleRadius(canvas);
                 const corners = { tl: { x: z.x, y: z.y }, tr: { x: z.x + z.w, y: z.y }, bl: { x: z.x, y: z.y + z.h }, br: { x: z.x + z.w, y: z.y + z.h } };
-                for (let handle in corners) { const pt = corners[handle]; if (x >= pt.x - HANDLE_SIZE && x <= pt.x + HANDLE_SIZE && y >= pt.y - HANDLE_SIZE && y <= pt.y + HANDLE_SIZE) { activeZone = z; activeData = data; isResizingZone = true; resizeHandle = handle; render(data); return; } }
+                for (let handle in corners) { const pt = corners[handle]; if (Math.abs(x - pt.x) <= hit && Math.abs(y - pt.y) <= hit) { isResizingZone = true; resizeHandle = handle; render(data); return; } }
             }
             const clickedZone = data.zones.find(z => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h);
             if (clickedZone) { activeZone = clickedZone; activeData = data; isMovingZone = true; zoneDragOffset = { x: x - clickedZone.x, y: y - clickedZone.y }; render(data); return; }
@@ -2172,6 +2202,7 @@
         canvas.addEventListener('pointermove', (e) => {
             const rect = canvas.getBoundingClientRect(); const x = (e.clientX - rect.left) * (canvas.width / rect.width); const y = (e.clientY - rect.top) * (canvas.height / rect.height);
             if (Math.abs(x - startPointerPos.x) > 5 || Math.abs(y - startPointerPos.y) > 5) hasDragged = true;
+            if (e.pointerType === 'mouse' && !isDrawingNewZone && !holdingItem && !isMovingZone && !isResizingZone) canvas.style.cursor = hoverCursor(data, canvas, x, y);
 
             if (isDrawingNewZone) { currentDrawPos = { x, y }; render(data); }
             else if (holdingItem) { mousePos = { x, y }; render(data); }
@@ -2246,24 +2277,33 @@
     function drawZoneMarker(ctx, z, n, isActive) {
         const fs = bubbleFontSize, r = Math.max(12, Math.round(fs * 0.72));
         const cx = z.x + r + 6, cy = z.y + r + 6;
-        ctx.save();
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.fillStyle = isActive ? '#c44444' : themeColors.accent; ctx.fill();
-        ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
-        ctx.fillStyle = isActive ? '#fff' : themeColors.onAccent; ctx.font = `bold ${Math.round(r * 1.1)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(String(n), cx, cy + 1);
-
+        const markFill = isActive ? themeColors.danger : themeColors.accent, markText = isActive ? '#fff' : themeColors.onAccent;
         const small = Math.round(fs * 0.78);
-        ctx.font = `600 ${small}px sans-serif`;
-        // 사용자가 의미 있게 지은 이름("냉장고 위")만 번호 옆에 표시 — "3구역" 같은 기본 이름은 번호로 충분
+        ctx.save();
+
+        // 위치 표지(번호 + 이름)는 테마 강조색 한 덩어리, 물건 뱃지는 흰색 — "어디"와 "무엇"을 구분한다.
+        // 사용자가 의미 있게 지은 이름("냉장고 위")만 붙이고, "3구역" 같은 기본 이름은 번호로 충분
+        let name = '';
         if (z.name && !DEFAULT_ZONE_NAME.test(z.name)) {
-            const room = z.w - (r * 2 + 18);
-            let name = z.name;
-            while (name.length > 1 && !fitPill(ctx, name, room)) name = name.slice(0, -1);
+            ctx.font = `600 ${small}px sans-serif`;
+            const room = z.w - 12 - (r * 2 + 6) - 12;
+            name = z.name;
+            while (name.length > 1 && ctx.measureText(name).width > room) name = name.slice(0, -1);
             if (name.length < z.name.length) name = name.length > 1 ? name.slice(0, -1) + '…' : '';
-            if (name) drawPill(ctx, 0, cy - (small + 12) / 2, name, small, 'left', cx + r + 4);
+        }
+        const nameW = name ? ctx.measureText(name).width + 6 + 12 : 0;
+        ctx.beginPath(); drawSafeRoundRect(ctx, cx - r, cy - r, r * 2 + nameW, r * 2, r);
+        ctx.fillStyle = markFill; ctx.fill();
+        ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
+        ctx.fillStyle = markText; ctx.textBaseline = 'middle';
+        ctx.font = `bold ${Math.round(r * 1.1)}px sans-serif`; ctx.textAlign = 'center';
+        ctx.fillText(String(n), cx, cy + 1);
+        if (name) {
+            ctx.font = `600 ${small}px sans-serif`; ctx.textAlign = 'left';
+            ctx.fillText(name, cx + r + 6, cy + 1);
         }
 
+        ctx.font = `600 ${small}px sans-serif`;
         if (z.items.length) {
             const maxW = z.w - 12, first = z.items[0].name, more = z.items.length - 1;
             const candidates = [more ? `${first} 외 ${more}` : first, `${z.items.length}개`, `${z.items.length}`];
@@ -2444,7 +2484,7 @@
                 ctx.font = 'bold ' + Math.round(bubbleFontSize * 1.1) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.strokeStyle = '#1a1a18'; ctx.lineWidth = 3; ctx.strokeText(z.name, z.x + z.w / 2, z.y + z.h / 2); ctx.fillStyle = '#ffffff'; ctx.fillText(z.name, z.x + z.w / 2, z.y + z.h / 2);
             }
-            if (isEditMode && z === activeZone) { ctx.fillStyle = 'white'; ctx.strokeStyle = '#c44444'; ctx.lineWidth = 2; const corners = [{ x: z.x, y: z.y }, { x: z.x + z.w, y: z.y }, { x: z.x, y: z.y + z.h }, { x: z.x + z.w, y: z.y + z.h }]; corners.forEach(c => { ctx.fillRect(c.x - 10, c.y - 10, 20, 20); ctx.strokeRect(c.x - 10, c.y - 10, 20, 20); }); }
+            if (isEditMode && z === activeZone) { ctx.fillStyle = 'white'; ctx.strokeStyle = '#c44444'; ctx.lineWidth = 2; const corners = [{ x: z.x, y: z.y }, { x: z.x + z.w, y: z.y }, { x: z.x, y: z.y + z.h }, { x: z.x + z.w, y: z.y + z.h }]; const hh = handleDrawHalf(canvas); corners.forEach(c => { ctx.fillRect(c.x - hh, c.y - hh, hh * 2, hh * 2); ctx.strokeRect(c.x - hh, c.y - hh, hh * 2, hh * 2); }); }
             if (isEditMode && showDetails && z.items.length > 0) { drawSpeechBubble(ctx, z.x, (z.y < 60 ? z.y + z.h + 5 : z.y), z.items, z.y < 60, z); } else { z.bubbleBox = null; }
             if (z === activeZone && showSearchArrow) { ctx.fillStyle = '#c44444'; ctx.font = 'bold 32px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('▼', z.x + z.w / 2, z.y - 20 - bounce); }
         });
