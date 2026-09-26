@@ -428,7 +428,7 @@
 
         .image-section { background: var(--card); padding: 20px; margin-bottom: 24px; border-radius: var(--radius-lg); border: 1px solid rgba(224,219,208,0.6); box-shadow: var(--shadow-sm); position: relative; }
         /* 사진이 여러 장이면 한 번에 한 장만 보여주고, 위 썸네일 줄로 바꿔 본다 */
-        .image-section.is-offstage { display: none; }
+        .image-section { scroll-margin-top: 84px; }
         .photo-strip { position: relative; display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 12px; margin: 0 -2px 4px; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
         .photo-strip::-webkit-scrollbar { display: none; }
         .photo-strip[hidden] { display: none; }
@@ -1703,17 +1703,17 @@
         if (historyStack.length > 0) { btn.disabled = false; btn.style.background = "var(--card)"; btn.style.color = "var(--charcoal-mute)"; btn.style.cursor = "pointer"; btn.style.borderColor = "var(--ivory-border)"; }
         else { btn.disabled = true; btn.style.background = "var(--bg)"; btn.style.color = "var(--text3)"; btn.style.cursor = "not-allowed"; btn.style.borderColor = "var(--ivory-border)"; }
     }
-    // 구역 목록은 기본으로 접어 둔다 (펼친 사진만 기억: 사진 삭제 등으로 화면을 다시 그려도 유지)
-    const openZoneLists = new Set();
+    // 구역 목록은 기본으로 펼쳐 둔다 (접은 사진만 기억: 사진 삭제 등으로 화면을 다시 그려도 유지)
+    const closedZoneLists = new Set();
     function setZoneListOpen(dataId, open) {
         const listDiv = document.getElementById('list-' + dataId), arrow = document.getElementById('arrow-' + dataId);
-        if (open) openZoneLists.add(String(dataId)); else openZoneLists.delete(String(dataId));
+        if (open) closedZoneLists.delete(String(dataId)); else closedZoneLists.add(String(dataId));
         if (listDiv) listDiv.style.display = open ? "block" : "none";
         if (arrow) arrow.innerText = open ? "▼ 리스트 접기" : "▲ 리스트 펼치기";
     }
     function expandZoneList(dataId) { setZoneListOpen(dataId, true); }
 
-    // 사진이 2장 이상이면 한 장만 보여주고 위 썸네일 줄에서 고른다
+    // 사진이 2장 이상이면 모두 이어서 보여주고, 위 썸네일 줄은 그 사진으로 이동하는 목차 역할을 한다
     let currentPhotoId = null;
     const photoThumbCache = new WeakMap();
     function photoThumbUrl(data) {
@@ -1732,28 +1732,52 @@
     function syncPhotoView() {
         const photos = imageList.filter(d => d.id !== 'dummy_root'), multi = photos.length > 1;
         if (!photos.some(d => d.id == currentPhotoId)) currentPhotoId = photos.length ? photos[0].id : null;
-        imageList.forEach(d => { const s = document.getElementById('section-' + d.id); if (s) s.classList.toggle('is-offstage', multi && d.id != currentPhotoId); });
         const strip = document.getElementById('photoStrip');
         strip.hidden = !multi;
         strip.replaceChildren(...(multi ? photos.map(d => {
             const btn = document.createElement('button');
             btn.type = 'button'; btn.className = 'photo-thumb'; btn.setAttribute('role', 'tab');
+            btn.dataset.id = d.id;
             btn.setAttribute('aria-selected', d.id == currentPhotoId ? 'true' : 'false');
-            btn.onclick = () => showPhoto(d.id);
+            btn.onclick = () => showPhoto(d.id, true);
             const url = photoThumbUrl(d), pic = document.createElement(url ? 'img' : 'div');
             if (url) { pic.src = url; pic.alt = ''; } else pic.className = 'photo-thumb-empty';
             const label = document.createElement('span'); label.textContent = d.title;
             btn.append(pic, label);
             return btn;
         }) : []));
-        const cur = strip.querySelector('[aria-selected="true"]');
+        centerCurrentThumb();
+    }
+    function centerCurrentThumb() {
+        const strip = document.getElementById('photoStrip'), cur = strip.querySelector('[aria-selected="true"]');
         if (cur) strip.scrollLeft = cur.offsetLeft - (strip.clientWidth - cur.offsetWidth) / 2;
     }
-    function showPhoto(dataId) {
+    function markCurrentPhoto(dataId) {
         if (currentPhotoId == dataId) return;
         currentPhotoId = dataId;
-        syncPhotoView();
+        document.querySelectorAll('.photo-thumb').forEach(b => b.setAttribute('aria-selected', b.dataset.id == dataId ? 'true' : 'false'));
+        centerCurrentThumb();
     }
+    function showPhoto(dataId, scroll) {
+        markCurrentPhoto(dataId);
+        if (scroll) { const s = document.getElementById('section-' + dataId); if (s) s.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    }
+    // 스크롤하며 보는 사진을 썸네일에 표시: 화면 위쪽 35% 선을 넘어선 마지막 사진 (맨 아래까지 내리면 마지막 사진)
+    function updateCurrentPhotoFromScroll() {
+        const photos = imageList.filter(d => d.id !== 'dummy_root');
+        if (photos.length < 2) return;
+        const line = innerHeight * 0.35;
+        let cur = photos[0].id;
+        photos.forEach(d => { const s = document.getElementById('section-' + d.id); if (s && s.getBoundingClientRect().top <= line) cur = d.id; });
+        if (scrollY > 0 && innerHeight + scrollY >= document.documentElement.scrollHeight - 2) cur = photos[photos.length - 1].id;
+        markCurrentPhoto(cur);
+    }
+    let photoSpyQueued = false;
+    window.addEventListener('scroll', () => {
+        if (photoSpyQueued) return;
+        photoSpyQueued = true;
+        requestAnimationFrame(() => { photoSpyQueued = false; updateCurrentPhotoFromScroll(); });
+    }, { passive: true });
 
     function toggleEditMode() {
         isEditMode = !isEditMode;
@@ -1995,7 +2019,7 @@
 
         const listWrapper = document.createElement('div'); listWrapper.style.cssText = "margin-top: 16px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--card);";
         const toggleHeader = document.createElement('div'); toggleHeader.style.cssText = "padding: 12px 16px; background: var(--bg); cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; font-size: 13px; font-weight: 500; color: var(--text); border-bottom: 1px solid var(--border);";
-        const listOpen = openZoneLists.has(String(data.id));
+        const listOpen = !closedZoneLists.has(String(data.id));
         toggleHeader.innerHTML = `<span><i class="ti ti-list" style="margin-right:4px; color:var(--text2);"></i>구역 목록<span class="zl-summary" id="count-${data.id}"></span></span><span id="arrow-${data.id}" style="font-size:11px; color:var(--text2); flex-shrink:0;">${listOpen ? "▼ 리스트 접기" : "▲ 리스트 펼치기"}</span>`;
         const listDiv = document.createElement('div'); listDiv.id = 'list-' + data.id; listDiv.style.display = listOpen ? "block" : "none";
         toggleHeader.onclick = () => setZoneListOpen(data.id, listDiv.style.display === "none");
@@ -2027,7 +2051,7 @@
                 const newId = Date.now(); const newTitle = "#" + (imageList.length + 1);
                 const data = { imgData: compressedUrl, zones: [], id: newId, title: newTitle };
                 const finalImg = new Image(); finalImg.src = compressedUrl;
-                finalImg.onload = () => { data.img = finalImg; createNewCanvasElement(data); showPhoto(data.id); render(data); saveData(); };
+                finalImg.onload = () => { data.img = finalImg; createNewCanvasElement(data); showPhoto(data.id, true); render(data); saveData(); };
             };
             img.src = e.target.result;
         };
@@ -3151,7 +3175,7 @@
         if (!imageList.some(d => d.id !== 'dummy_root' && d.zones.length)) { openZonePicker(); return; } // 고를 구역이 없으면 안내 표시
         if (wideScreenQuery.matches) openZonePicker();
         // 고를 사진이 화면에 없으면 첫 사진으로 데려다 준다
-        const firstSection = document.querySelector('.image-section:not([style*="display: none"]):not(.is-offstage)');
+        const firstSection = document.querySelector('.image-section:not([style*="display: none"])');
         const anyCanvasVisible = imageList.some(d => { if (!d.canvas) return false; const r = d.canvas.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; });
         if (!anyCanvasVisible && firstSection) firstSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
