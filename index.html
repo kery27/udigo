@@ -670,6 +670,10 @@
         .brand-home { display: flex; align-items: center; background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }
         body:not(.welcome-revisit) .revisit-only { display: none !important; }
         .welcome-back { display: inline-flex; margin: -16px 0 16px; }
+        .feedback-link {
+            display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; margin-top: 12px;
+            background: none; border: 0; font: inherit; font-size: 13px; color: var(--text2); cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+        }
         .welcome-revisit-note { font-size: 12px; color: var(--text3); word-break: keep-all; }
         .industry-pick { max-width: 360px; margin: 0 auto 20px; }
         .industry-pick-label { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
@@ -1033,6 +1037,8 @@
             <button type="button" onclick="document.getElementById('guideModal').style.setProperty('display', 'block', 'important')">사용방법 보기</button>
             <span aria-hidden="true">·</span>
             <button type="button" onclick="document.getElementById('backupFileInput').click()">백업 파일로 복구</button>
+            <span aria-hidden="true">·</span>
+            <button type="button" onclick="openFeedbackForm()">의견 보내기</button>
         </div>
     </section>
 
@@ -1047,6 +1053,7 @@
     <button id="sampleDataBtn" onclick="loadSampleData()" class="btn-base btn-secondary btn-lg" style="display:none; width: 100%; margin-top: 10px; border-style: dashed;">
         <i class="ti ti-package"></i> 샘플 데이터로 둘러보기
     </button>
+    <button type="button" id="feedbackBtn" class="feedback-link" onclick="openFeedbackForm()"><i class="ti ti-message-2"></i> 써보니 어떠세요? 의견 보내기 (1분)</button>
 </div>
 
 <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="addImage(this)">
@@ -1193,6 +1200,7 @@
         <button class="btn-settings-item btn-base btn-primary" onclick="applyIndustryTemplate()" style="width: 100%;">선택한 업종의 필수 항목 적용하기</button>
     </div>
     <div style="display: flex; flex-direction: column; gap: 6px;">
+        <button class="btn-settings-item btn-base" onclick="openFeedbackForm()" style="background: var(--card); border: 1px solid var(--border); color: var(--text);"><i class="ti ti-message-2"></i> 의견 보내기</button>
         <button class="btn-settings-item btn-base" onclick="exportSystemData()" style="background: var(--card); border: 1px solid var(--accent-text); color: var(--accent-text);"><i class="ti ti-download"></i> 현재 데이터 백업 파일 받기</button>
         <button class="btn-settings-item btn-base" onclick="document.getElementById('backupFileInput').click()" style="background: var(--card); border: 1px solid var(--accent2); color: var(--accent-text);"><i class="ti ti-upload"></i> 백업 파일로 복구하기</button>
         <input type="file" id="backupFileInput" accept=".json" style="display:none" onchange="importSystemData(this)">
@@ -2700,6 +2708,9 @@
         baseItems = [...SAMPLE_DEMO_DATA.baseItems];
     }
 
+    const FEEDBACK_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSeasXUyRCQNDvlBqHDo4SbQMsNkBpBaHqFqL6aWU091yDmpLw/viewform';
+    function openFeedbackForm() { window.open(FEEDBACK_FORM_URL, '_blank', 'noopener'); }
+
     // 창고지기 로고 → 저장된 데이터는 그대로 두고 첫 화면 카드만 다시 보여준다
     function openWelcomeRevisit() {
         if (typeof deactivateHeroSearch === 'function') deactivateHeroSearch();
@@ -3308,7 +3319,8 @@
         if (show) syncIndustryUI();
         const sampleBtn = document.getElementById('sampleDataBtn'); if (sampleBtn && show) sampleBtn.style.display = 'none';
         const dummy = document.getElementById('section-dummy_root'); if (dummy) dummy.style.display = show ? 'none' : '';
-        const actions = document.getElementById('bottomActions'); if (actions) actions.style.display = show ? 'none' : 'flex'; // 첫 화면 카드에 같은 버튼이 있으므로 중복 숨김
+        const actions = document.getElementById('bottomActions'); if (actions) actions.style.display = show ? 'none' : 'flex';
+        const feedback = document.getElementById('feedbackBtn'); if (feedback) feedback.style.display = show ? 'none' : ''; // 첫 화면 카드에 같은 버튼이 있으므로 중복 숨김
     }
 
     // 검색 카드(.search-bar) 안을 누른 건 바깥 클릭으로 보지 않음 — 모바일에서 누르는 순간 카드가 위로 이동해 탭 위치가 카드 안 다른 곳에 떨어지기 때문
