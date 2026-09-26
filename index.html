@@ -1752,7 +1752,7 @@
     let themeColors = {};
     function readThemeColors() {
         const cs = getComputedStyle(document.documentElement), v = (n) => cs.getPropertyValue(n).trim();
-        themeColors = { bg: v('--bg'), onAccent: v('--on-accent'), accent: v('--accent'), accent2: v('--accent2'), accentRgb: v('--accent-rgb'), zoneStroke: v('--zone-stroke'), zoneFillRgb: v('--zone-fill-rgb') };
+        themeColors = { bg: v('--bg'), onAccent: v('--on-accent'), danger: v('--danger') || '#c44444', accent: v('--accent'), accent2: v('--accent2'), accentRgb: v('--accent-rgb'), zoneStroke: v('--zone-stroke'), zoneFillRgb: v('--zone-fill-rgb') };
     }
     readThemeColors();
 
@@ -2246,24 +2246,33 @@
     function drawZoneMarker(ctx, z, n, isActive) {
         const fs = bubbleFontSize, r = Math.max(12, Math.round(fs * 0.72));
         const cx = z.x + r + 6, cy = z.y + r + 6;
-        ctx.save();
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.fillStyle = isActive ? '#c44444' : themeColors.accent; ctx.fill();
-        ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
-        ctx.fillStyle = isActive ? '#fff' : themeColors.onAccent; ctx.font = `bold ${Math.round(r * 1.1)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(String(n), cx, cy + 1);
-
+        const markFill = isActive ? themeColors.danger : themeColors.accent, markText = isActive ? '#fff' : themeColors.onAccent;
         const small = Math.round(fs * 0.78);
-        ctx.font = `600 ${small}px sans-serif`;
-        // 사용자가 의미 있게 지은 이름("냉장고 위")만 번호 옆에 표시 — "3구역" 같은 기본 이름은 번호로 충분
+        ctx.save();
+
+        // 위치 표지(번호 + 이름)는 테마 강조색 한 덩어리, 물건 뱃지는 흰색 — "어디"와 "무엇"을 구분한다.
+        // 사용자가 의미 있게 지은 이름("냉장고 위")만 붙이고, "3구역" 같은 기본 이름은 번호로 충분
+        let name = '';
         if (z.name && !DEFAULT_ZONE_NAME.test(z.name)) {
-            const room = z.w - (r * 2 + 18);
-            let name = z.name;
-            while (name.length > 1 && !fitPill(ctx, name, room)) name = name.slice(0, -1);
+            ctx.font = `600 ${small}px sans-serif`;
+            const room = z.w - 12 - (r * 2 + 6) - 12;
+            name = z.name;
+            while (name.length > 1 && ctx.measureText(name).width > room) name = name.slice(0, -1);
             if (name.length < z.name.length) name = name.length > 1 ? name.slice(0, -1) + '…' : '';
-            if (name) drawPill(ctx, 0, cy - (small + 12) / 2, name, small, 'left', cx + r + 4);
+        }
+        const nameW = name ? ctx.measureText(name).width + 6 + 12 : 0;
+        ctx.beginPath(); drawSafeRoundRect(ctx, cx - r, cy - r, r * 2 + nameW, r * 2, r);
+        ctx.fillStyle = markFill; ctx.fill();
+        ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
+        ctx.fillStyle = markText; ctx.textBaseline = 'middle';
+        ctx.font = `bold ${Math.round(r * 1.1)}px sans-serif`; ctx.textAlign = 'center';
+        ctx.fillText(String(n), cx, cy + 1);
+        if (name) {
+            ctx.font = `600 ${small}px sans-serif`; ctx.textAlign = 'left';
+            ctx.fillText(name, cx + r + 6, cy + 1);
         }
 
+        ctx.font = `600 ${small}px sans-serif`;
         if (z.items.length) {
             const maxW = z.w - 12, first = z.items[0].name, more = z.items.length - 1;
             const candidates = [more ? `${first} 외 ${more}` : first, `${z.items.length}개`, `${z.items.length}`];
