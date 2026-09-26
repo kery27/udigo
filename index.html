@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#ffd200">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="창고지기">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <script>
         // 화면 테마: 페인트 전에 적용해서 기본 테마가 잠깐 보였다 바뀌는 깜빡임을 막는다
         // 처음 방문(고른 적 없음)은 옐로우 & 네이비가 기본. 'default'(그린)를 직접 고른 사람은 그대로 유지
@@ -670,6 +676,7 @@
         .brand-home { display: flex; align-items: center; background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }
         body:not(.welcome-revisit) .revisit-only { display: none !important; }
         .welcome-back { display: inline-flex; margin: -16px 0 16px; }
+        .install-banner-actions { display: flex; gap: 4px; flex-shrink: 0; }
         .feedback-link {
             display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; margin-top: 12px;
             background: none; border: 0; font: inherit; font-size: 13px; color: var(--text2); cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
@@ -1001,6 +1008,13 @@
         <span><i class="ti ti-package"></i> 샘플 데이터로 둘러보는 중이에요</span>
         <button type="button" class="btn-xs is-danger" onclick="clearSampleData()"><i class="ti ti-trash"></i> 샘플 삭제</button>
     </div>
+    <div id="installBanner" class="sample-banner install-banner" style="display: none;">
+        <span id="installBannerText"><i class="ti ti-device-mobile"></i> 홈 화면에 추가하면 앱처럼 바로 열리고, 사진도 더 안전하게 보관돼요</span>
+        <span class="install-banner-actions">
+            <button type="button" class="btn-xs is-accent" onclick="installApp()">설치</button>
+            <button type="button" class="btn-xs is-icon" onclick="dismissInstallBanner()" title="닫기" aria-label="닫기"><i class="ti ti-x"></i></button>
+        </span>
+    </div>
     <div id="samplePreviewBanner" class="sample-banner" style="display: none;">
         <span><i class="ti ti-eye"></i> 샘플 미리보기 중이에요. 여기서 바꾼 건 저장되지 않아요</span>
         <button type="button" class="btn-xs is-accent" onclick="exitSamplePreview()">내 지도로 돌아가기</button>
@@ -1200,6 +1214,7 @@
         <button class="btn-settings-item btn-base btn-primary" onclick="applyIndustryTemplate()" style="width: 100%;">선택한 업종의 필수 항목 적용하기</button>
     </div>
     <div style="display: flex; flex-direction: column; gap: 6px;">
+        <button class="btn-settings-item btn-base" onclick="installApp()" style="background: var(--card); border: 1px solid var(--border); color: var(--text);"><i class="ti ti-device-mobile"></i> 홈 화면에 앱으로 설치하기</button>
         <button class="btn-settings-item btn-base" onclick="openFeedbackForm()" style="background: var(--card); border: 1px solid var(--border); color: var(--text);"><i class="ti ti-message-2"></i> 의견 보내기</button>
         <button class="btn-settings-item btn-base" onclick="exportSystemData()" style="background: var(--card); border: 1px solid var(--accent-text); color: var(--accent-text);"><i class="ti ti-download"></i> 현재 데이터 백업 파일 받기</button>
         <button class="btn-settings-item btn-base" onclick="document.getElementById('backupFileInput').click()" style="background: var(--card); border: 1px solid var(--accent2); color: var(--accent-text);"><i class="ti ti-upload"></i> 백업 파일로 복구하기</button>
@@ -2708,6 +2723,49 @@
         baseItems = [...SAMPLE_DEMO_DATA.baseItems];
     }
 
+    // 📲 홈 화면 설치(PWA): 안드로이드·PC 크롬은 설치 창을 띄우고, 아이폰은 공유 메뉴 방법을 안내한다
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+        window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+    let deferredInstallPrompt = null;
+    const isInstalledApp = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const IOS_INSTALL_GUIDE = "아래쪽(또는 주소창 옆) 공유 버튼 → '홈 화면에 추가'를 누르면 앱처럼 설치돼요.";
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredInstallPrompt = e; maybeShowInstallBanner(); });
+    window.addEventListener('appinstalled', () => { deferredInstallPrompt = null; hideInstallBanner(); });
+    function maybeShowInstallBanner() {
+        if (isInstalledApp() || isSamplePreview || !hasSavedData()) return;
+        if (!deferredInstallPrompt && !isIOS()) return;
+        const until = parseInt(safeStorage.getItem('installBannerHiddenUntil') || '0', 10);
+        if (until && Date.now() < until) return;
+        document.getElementById('installBanner').style.display = 'flex';
+    }
+    function hideInstallBanner() { const b = document.getElementById('installBanner'); if (b) b.style.display = 'none'; }
+    function dismissInstallBanner() {
+        safeStorage.setItem('installBannerHiddenUntil', String(Date.now() + 14 * 24 * 60 * 60 * 1000));
+        hideInstallBanner();
+    }
+    async function installApp() {
+        if (isInstalledApp()) { alert("이미 홈 화면 앱으로 쓰고 계세요."); return; }
+        if (deferredInstallPrompt) {
+            deferredInstallPrompt.prompt();
+            const { outcome } = await deferredInstallPrompt.userChoice;
+            deferredInstallPrompt = null;
+            if (outcome === 'accepted') hideInstallBanner();
+            return;
+        }
+        if (isIOS()) {
+            const text = document.getElementById('installBannerText');
+            if (text && document.getElementById('installBanner').style.display !== 'none') {
+                text.textContent = IOS_INSTALL_GUIDE;
+                document.querySelector('#installBanner .is-accent').style.display = 'none';
+                return;
+            }
+            alert(IOS_INSTALL_GUIDE); return;
+        }
+        alert("브라우저 메뉴(⋮)에서 '홈 화면에 추가' 또는 '앱 설치'를 눌러주세요.");
+    }
+
     const FEEDBACK_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSeasXUyRCQNDvlBqHDo4SbQMsNkBpBaHqFqL6aWU091yDmpLw/viewform';
     function openFeedbackForm() { window.open(FEEDBACK_FORM_URL, '_blank', 'noopener'); }
 
@@ -3525,6 +3583,7 @@
             activateHeroSearch();
             if (deleteSampleBtn && safeStorage.getItem('isSampleData') === '1') deleteSampleBtn.style.display = 'flex';
             if (isSamplePreview) document.getElementById('samplePreviewBanner').style.display = 'flex';
+            maybeShowInstallBanner();
         }
         else {
             if (sampleDataBtn && SAMPLE_DEMO_DATA.savedSystemData.length) sampleDataBtn.style.display = 'block';
