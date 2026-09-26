@@ -656,6 +656,17 @@
         .welcome-steps i { font-size: 24px; color: var(--accent-text); margin-bottom: 4px; }
         .welcome-steps b { font-size: 14px; color: var(--text); }
         .welcome-steps span { word-break: keep-all; }
+        .industry-pick { max-width: 360px; margin: 0 auto 20px; }
+        .industry-pick-label { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+        .industry-chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .industry-chip {
+            min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 4px;
+            background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md);
+            font: inherit; font-size: 12px; font-weight: 600; color: var(--text2); cursor: pointer; word-break: keep-all;
+        }
+        .industry-chip i { font-size: 16px; }
+        .industry-chip[aria-pressed="true"] { border-color: var(--accent-text); background: var(--accent-soft); color: var(--accent-text); }
+        .industry-pick-hint { margin-top: 8px; font-size: 12px; color: var(--text3); word-break: keep-all; }
         .welcome-actions { display: flex; flex-direction: column; gap: 8px; max-width: 360px; margin: 0 auto; }
         .welcome-links { margin-top: 14px; display: flex; justify-content: center; align-items: center; gap: 4px; font-size: 12px; color: var(--text3); }
         .welcome-links button { background: none; border: none; color: var(--text2); font-size: 12px; padding: 8px 6px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
@@ -981,8 +992,20 @@
             <li><i class="ti ti-border-corners"></i><b>표시</b><span>구역에 물건 기록</span></li>
             <li><i class="ti ti-search"></i><b>찾기</b><span>이름·초성·음성</span></li>
         </ol>
+        <div class="industry-pick">
+            <div class="industry-pick-label">어떤 곳을 정리하세요?</div>
+            <div class="industry-chips">
+                <button type="button" class="industry-chip" data-industry="cafe" aria-pressed="false" onclick="pickIndustry('cafe')"><i class="ti ti-coffee"></i>카페</button>
+                <button type="button" class="industry-chip" data-industry="restaurant" aria-pressed="false" onclick="pickIndustry('restaurant')"><i class="ti ti-tools-kitchen-2"></i>식당</button>
+                <button type="button" class="industry-chip" data-industry="hardware" aria-pressed="false" onclick="pickIndustry('hardware')"><i class="ti ti-hammer"></i>철물·공구</button>
+                <button type="button" class="industry-chip" data-industry="beauty" aria-pressed="false" onclick="pickIndustry('beauty')"><i class="ti ti-droplet"></i>화장품·드럭</button>
+                <button type="button" class="industry-chip" data-industry="clothing" aria-pressed="false" onclick="pickIndustry('clothing')"><i class="ti ti-shirt"></i>의류·잡화</button>
+                <button type="button" class="industry-chip" data-industry="general" aria-pressed="false" onclick="pickIndustry('general')"><i class="ti ti-package"></i>창고·기타</button>
+            </div>
+            <p id="industryHint" class="industry-pick-hint">고르면 자주 쓰는 품목을 미리 넣어둘게요</p>
+        </div>
         <div class="welcome-actions">
-            <button class="btn-base btn-primary btn-lg" onclick="loadSampleData()"><i class="ti ti-player-play"></i> 샘플로 먼저 둘러보기</button>
+            <button class="btn-base btn-primary btn-lg" onclick="loadSampleData()"><i class="ti ti-player-play"></i> 카페 예시로 먼저 둘러보기</button>
             <button class="btn-base btn-secondary btn-lg" onclick="document.getElementById('fileInput').click()"><i class="ti ti-camera"></i> 내 창고 사진으로 시작</button>
         </div>
         <div class="welcome-links">
@@ -1145,14 +1168,7 @@
     </div>
     <div style="margin-bottom: 20px; padding: 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
         <label style="font-weight: 600; font-size: 12px; color: var(--accent-text); display: block; margin-bottom: 8px;">업종별 기본 품목 원클릭 세팅</label>
-        <select id="industrySelect" style="margin-bottom: 8px;">
-            <option value="cafe">☕ 카페 / 디저트 점포</option>
-            <option value="pharmacy">💊 약국 / 조제실</option>
-            <option value="hospital">🏥 병원 창고</option>
-            <option value="restaurant">🥩 식당 / 요리 주점</option>
-            <option value="clothing">👗 의류 매장 / 옷가게</option>
-            <option value="mart">🏪 편의점 / 마트 / PC방</option>
-        </select>
+        <select id="industrySelect" style="margin-bottom: 8px;"></select>
         <button class="btn-settings-item btn-base btn-primary" onclick="applyIndustryTemplate()" style="width: 100%;">선택한 업종의 필수 항목 적용하기</button>
     </div>
     <div style="display: flex; flex-direction: column; gap: 6px;">
@@ -1603,7 +1619,20 @@
 
     let imageList = [], activeData = null, activeZone = null, showDetails = true, isEditMode = false;
     let historyStack = [], pendingHistoryState = null;
-    let baseItems = ["빨대", "냅킨", "시럽", "컵홀더", "우유", "원두", "캐리어", "뚜껑"];
+    // 업종별 기본 품목: 구역 팝업에 체크 목록으로 먼저 떠서, 처음 기록할 때 타이핑을 줄여준다
+    const INDUSTRY_TEMPLATES = {
+        cafe:       { label: '카페 / 디저트',        items: ["빨대", "냅킨", "시럽", "컵홀더", "우유", "원두", "캐리어", "뚜껑"] },
+        restaurant: { label: '식당 / 주점',          items: ["물티슈", "일회용 앞치마", "부탄가스", "불판", "가위/집게", "수저통", "술잔", "호출벨"] },
+        hardware:   { label: '철물점 / 공구상',      items: ["볼트/너트", "피스(나사)", "앵커", "실리콘", "케이블타이", "절연테이프", "배관 부품", "드릴 비트"] },
+        beauty:     { label: '화장품 / 드럭스토어',  items: ["스킨케어", "마스크팩", "선크림", "색조", "헤어·바디", "테스터", "쇼핑백", "가격택"] },
+        clothing:   { label: '의류 / 잡화',          items: ["옷걸이", "마네킹", "스팀다리미", "테이프클리너", "쇼핑백", "가격택", "도난방지택", "페이스커버"] },
+        mart:       { label: '편의점 / 마트 / PC방', items: ["나무젓가락", "빨대/스푼", "영수증롤", "종량제봉투", "소독제", "위생장갑", "가격라벨지", "박스테이프"] },
+        pharmacy:   { label: '약국 / 조제실',        items: ["전문약(처방)", "일반약(비급여)", "영양제/건기식", "투약병/시럽병", "조제봉투", "연고류", "의약외품", "파스류"] },
+        hospital:   { label: '병원 창고',            items: ["주사기/바늘", "거즈/붕대", "수액세트", "알코올솜", "반창고", "소독액", "위생장갑", "트레이"] },
+        general:    { label: '창고 / 백룸 / 기타',   items: ["예비 재고 박스", "포장 테이프", "완충재", "쇼핑백", "가격 라벨지", "청소용품", "행사 POP", "반품 대기"] },
+    };
+    function currentIndustry() { const k = safeStorage.getItem('industry'); return INDUSTRY_TEMPLATES[k] ? k : null; }
+    let baseItems = [...INDUSTRY_TEMPLATES[currentIndustry() || 'general'].items];
     try { const stored = safeStorage.getItem('baseItems'); if (stored) baseItems = JSON.parse(stored); } catch(e) {}
 
     // PC에서는 캔버스가 원본 크기(800px)에 가깝게 보여서 같은 값도 더 크게 보이므로,
@@ -1811,7 +1840,12 @@
     }
     syncThemeUI();
 
-    function openSettingsModal() { document.getElementById('settingsModal').style.display = 'block'; }
+    function openSettingsModal() {
+        const sel = document.getElementById('industrySelect');
+        if (!sel.options.length) sel.innerHTML = Object.entries(INDUSTRY_TEMPLATES).map(([k, t]) => `<option value="${k}">${t.label}</option>`).join('');
+        syncIndustryUI();
+        document.getElementById('settingsModal').style.display = 'block';
+    }
     function closeSettingsModal() { document.getElementById('settingsModal').style.display = 'none'; }
     // 팝업·시트가 떠 있는 동안 뒤 화면이 같이 드래그되지 않도록 페이지를 제자리에 고정
     let pageScrollLocks = 0, pageScrollY = 0;
@@ -2481,8 +2515,23 @@
     }
     function applyIndustryTemplate() {
         const selectedType = document.getElementById('industrySelect').value;
-        const templates = { cafe: ["빨대", "냅킨", "시럽", "컵홀더", "우유", "원두", "캐리어", "뚜껑"], pharmacy: ["전문약(처방)", "일반약(비급여)", "영양제/건기식", "투약병/시럽병", "조제봉투", "연고류", "의약외품", "파스류"], hospital: ["주사기/바늘", "거즈/붕대", "수액세트", "알코올솜", "반창고", "소독액", "위생장갑", "트레이"], restaurant: ["물티슈", "일회용 앞치마", "부탄가스", "불판", "가위/집게", "수저통", "술잔", "호출벨"], clothing: ["옷걸이", "마네킹", "스팀다리미", "테이프클리너", "쇼핑백", "가격택", "도난방지택", "페이스커버"], mart: ["나무젓가락", "빨대/스푼", "영수증롤", "종량제봉투", "소독제", "위생장갑", "가격라벨지", "박스테이프"] };
-        if (confirm("선택하신 업종의 필수 품목 목록으로 변경하시겠습니까?")) { baseItems = templates[selectedType]; saveData(); closeSettingsModal(); if (activeZone && document.getElementById('modal').style.display === 'flex') renderZoneItems(true); }
+        if (confirm("선택하신 업종의 필수 품목 목록으로 변경하시겠습니까?")) { setIndustry(selectedType); closeSettingsModal(); if (activeZone && document.getElementById('modal').style.display === 'flex') renderZoneItems(true); }
+    }
+    function setIndustry(key) {
+        baseItems = [...INDUSTRY_TEMPLATES[key].items];
+        try { safeStorage.setItem('industry', key); safeStorage.setItem('baseItems', JSON.stringify(baseItems)); } catch (e) {}
+        syncIndustryUI();
+    }
+    // 첫 화면에서 고르기: 아직 저장된 사진이 없으니 확인 없이 바로 바꾼다
+    function pickIndustry(key) {
+        setIndustry(key);
+        const hint = document.getElementById('industryHint');
+        if (hint) hint.textContent = `구역에 ${baseItems.slice(0, 3).join(', ')} 같은 품목을 미리 넣어둘게요`;
+    }
+    function syncIndustryUI() {
+        const cur = currentIndustry();
+        document.querySelectorAll('.industry-chip').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.industry === cur)));
+        const sel = document.getElementById('industrySelect'); if (sel && cur) sel.value = cur;
     }
     function exportSystemData() { const packageData = { note: "백업", savedSystemData: JSON.parse(safeStorage.getItem('savedSystemData') || "[]"), baseItems: JSON.parse(safeStorage.getItem('baseItems') || "[]") }; const downloadLink = document.createElement('a'); downloadLink.setAttribute("href", "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(packageData))); downloadLink.setAttribute("download", `매장위치지도_백업_${new Date().toISOString().slice(0,10)}.json`); downloadLink.click(); }
     function importSystemData(input) { if (!input.files[0]) return; const reader = new FileReader(); reader.onload = function(e) { try { const imported = JSON.parse(e.target.result); if (imported.savedSystemData && imported.baseItems && confirm("백업 파일로 전체 복구하시겠습니까?")) { safeStorage.setItem('savedSystemData', JSON.stringify(imported.savedSystemData)); safeStorage.setItem('baseItems', JSON.stringify(imported.baseItems)); location.reload(); } } catch (err) { alert("올바른 형식이 아닙니다."); } }; reader.readAsText(input.files[0]); }
@@ -3100,6 +3149,7 @@
     function showWelcome(show) {
         welcomeVisible = show;
         const card = document.getElementById('welcomeCard'); if (card) card.style.display = show ? 'block' : 'none';
+        if (show) syncIndustryUI();
         const sampleBtn = document.getElementById('sampleDataBtn'); if (sampleBtn && show) sampleBtn.style.display = 'none';
         const dummy = document.getElementById('section-dummy_root'); if (dummy) dummy.style.display = show ? 'none' : '';
         const actions = document.getElementById('bottomActions'); if (actions) actions.style.display = show ? 'none' : 'flex'; // 첫 화면 카드에 같은 버튼이 있으므로 중복 숨김
