@@ -667,6 +667,10 @@
         .welcome-steps i { font-size: 24px; color: var(--accent-text); margin-bottom: 4px; }
         .welcome-steps b { font-size: 14px; color: var(--text); }
         .welcome-steps span { word-break: keep-all; }
+        .brand-home { display: flex; align-items: center; background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+        body:not(.welcome-revisit) .revisit-only { display: none !important; }
+        .welcome-back { display: inline-flex; margin: -16px 0 16px; }
+        .welcome-revisit-note { font-size: 12px; color: var(--text3); word-break: keep-all; }
         .industry-pick { max-width: 360px; margin: 0 auto 20px; }
         .industry-pick-label { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
         .industry-chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
@@ -966,7 +970,7 @@
 
 <div class="search-bar">
     <div class="app-brand" style="display: flex; align-items: center;">
-        <i class="ti ti-box" style="margin-right: 6px;"></i>창고지기
+        <button type="button" class="brand-home" onclick="openWelcomeRevisit()" title="첫 화면 보기"><i class="ti ti-box" style="margin-right: 6px;"></i>창고지기</button>
         <span class="badge" style="background: var(--badge-bg); color: var(--badge-text); margin-left: 6px;">BETA</span>
         <button onclick="openVideoGuideModal()" style="background: none; border: none; padding: 0; margin-left: 8px; cursor: pointer; color: #e09b3a; display: flex; align-items: center;" title="사용방법 가이드">
             <i class="ti ti-bulb" style="font-size: 18px; transition: color 0.2s;"></i>
@@ -993,9 +997,14 @@
         <span><i class="ti ti-package"></i> 샘플 데이터로 둘러보는 중이에요</span>
         <button type="button" class="btn-xs is-danger" onclick="clearSampleData()"><i class="ti ti-trash"></i> 샘플 삭제</button>
     </div>
+    <div id="samplePreviewBanner" class="sample-banner" style="display: none;">
+        <span><i class="ti ti-eye"></i> 샘플 미리보기 중이에요. 여기서 바꾼 건 저장되지 않아요</span>
+        <button type="button" class="btn-xs is-accent" onclick="exitSamplePreview()">내 지도로 돌아가기</button>
+    </div>
 
     <!-- 🏁 첫 방문(데이터 없음) 화면: 5초 안에 무엇을 해주는 서비스인지 보여준다 -->
     <section id="welcomeCard" class="welcome-card" style="display: none;">
+        <button type="button" class="btn-xs welcome-back revisit-only" onclick="closeWelcomeRevisit()"><i class="ti ti-arrow-left"></i> 내 지도로 돌아가기</button>
         <h2 class="welcome-title">사진 한 장이<br>창고 지도가 돼요</h2>
         <p class="welcome-sub">창고 사진에 구역을 표시하고 물건을 적어두면,<br>누구든 검색 한 번으로 찾을 수 있어요.</p>
         <ol class="welcome-steps">
@@ -1018,6 +1027,7 @@
         <div class="welcome-actions">
             <button class="btn-base btn-primary btn-lg" onclick="loadSampleData()"><i class="ti ti-player-play"></i> 카페 예시로 먼저 둘러보기</button>
             <button class="btn-base btn-secondary btn-lg" onclick="document.getElementById('fileInput').click()"><i class="ti ti-camera"></i> 내 창고 사진으로 시작</button>
+            <p class="revisit-only welcome-revisit-note">지금 쓰던 지도는 그대로 있어요. 예시는 저장하지 않고 미리보기로 열려요.</p>
         </div>
         <div class="welcome-links">
             <button type="button" onclick="document.getElementById('guideModal').style.setProperty('display', 'block', 'important')">사용방법 보기</button>
@@ -1241,11 +1251,24 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
+    // 샘플 미리보기(이 탭에서만): 모든 쓰기를 메모리에만 두어 실제 저장된 데이터를 절대 덮어쓰지 않는다
+    const SAMPLE_PREVIEW_KEY = 'samplePreview';
+    let isSamplePreview = false;
+    try { isSamplePreview = sessionStorage.getItem(SAMPLE_PREVIEW_KEY) === '1'; } catch (e) {}
     const safeStorage = {
         _storage: {},
-        getItem(key) { try { return localStorage.getItem(key); } catch (e) { return this._storage[key] || null; } },
-        setItem(key, value) { try { localStorage.setItem(key, value); } catch (e) { this._storage[key] = value; } },
-        removeItem(key) { try { localStorage.removeItem(key); } catch (e) { delete this._storage[key]; } }
+        getItem(key) {
+            if (isSamplePreview && key in this._storage) return this._storage[key];
+            try { return localStorage.getItem(key); } catch (e) { return this._storage[key] || null; }
+        },
+        setItem(key, value) {
+            if (isSamplePreview) { this._storage[key] = String(value); return; }
+            try { localStorage.setItem(key, value); } catch (e) { this._storage[key] = value; }
+        },
+        removeItem(key) {
+            if (isSamplePreview) { this._storage[key] = null; return; }
+            try { localStorage.removeItem(key); } catch (e) { delete this._storage[key]; }
+        }
     };
 
     class RoboflowDetector {
@@ -2543,9 +2566,18 @@
         syncIndustryUI();
     }
     // 첫 화면에서 고르기: 아직 저장된 사진이 없으니 확인 없이 바로 바꾼다
+    // 이미 쓰던 사람이 다시 고를 때는 직접 추가해둔 품목을 지우지 않고 업종 품목만 더한다
     function pickIndustry(key) {
-        setIndustry(key);
         const hint = document.getElementById('industryHint');
+        if (hasSavedData()) {
+            const added = INDUSTRY_TEMPLATES[key].items.filter(n => !baseItems.includes(n));
+            baseItems.push(...added);
+            try { safeStorage.setItem('industry', key); safeStorage.setItem('baseItems', JSON.stringify(baseItems)); } catch (e) {}
+            syncIndustryUI();
+            if (hint) hint.textContent = added.length ? `기본 품목에 ${added.slice(0, 3).join(', ')} 등 ${added.length}개를 더했어요` : '이미 모두 들어 있어요';
+            return;
+        }
+        setIndustry(key);
         if (hint) hint.textContent = `구역에 ${baseItems.slice(0, 3).join(', ')} 같은 품목을 미리 넣어둘게요`;
     }
     function syncIndustryUI() {
@@ -2554,7 +2586,7 @@
         const sel = document.getElementById('industrySelect'); if (sel && cur) sel.value = cur;
     }
     function exportSystemData() { const packageData = { note: "백업", savedSystemData: JSON.parse(safeStorage.getItem('savedSystemData') || "[]"), baseItems: JSON.parse(safeStorage.getItem('baseItems') || "[]") }; const downloadLink = document.createElement('a'); downloadLink.setAttribute("href", "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(packageData))); downloadLink.setAttribute("download", `매장위치지도_백업_${new Date().toISOString().slice(0,10)}.json`); downloadLink.click(); }
-    function importSystemData(input) { if (!input.files[0]) return; const reader = new FileReader(); reader.onload = function(e) { try { const imported = JSON.parse(e.target.result); if (imported.savedSystemData && imported.baseItems && confirm("백업 파일로 전체 복구하시겠습니까?")) { safeStorage.setItem('savedSystemData', JSON.stringify(imported.savedSystemData)); safeStorage.setItem('baseItems', JSON.stringify(imported.baseItems)); location.reload(); } } catch (err) { alert("올바른 형식이 아닙니다."); } }; reader.readAsText(input.files[0]); }
+    function importSystemData(input) { if (!input.files[0]) return; const reader = new FileReader(); reader.onload = function(e) { try { const imported = JSON.parse(e.target.result); if (imported.savedSystemData && imported.baseItems && confirm("백업 파일로 전체 복구하시겠습니까?")) { if (isSamplePreview) { try { sessionStorage.removeItem(SAMPLE_PREVIEW_KEY); } catch (e) {} isSamplePreview = false; } safeStorage.setItem('savedSystemData', JSON.stringify(imported.savedSystemData)); safeStorage.setItem('baseItems', JSON.stringify(imported.baseItems)); location.reload(); } } catch (err) { alert("올바른 형식이 아닙니다."); } }; reader.readAsText(input.files[0]); }
 
     // ────────────────────────────────────────────────────────────
     // 📦 시연용 샘플 데이터: 빈 화면에서 바로 둘러볼 수 있는 미리 채워진 예시
@@ -2563,7 +2595,12 @@
 
     function loadSampleData() {
         if (!SAMPLE_DEMO_DATA.savedSystemData.length) { alert("샘플 데이터가 아직 준비되지 않았습니다."); return; }
-        if (hasSavedData() && !confirm("샘플 데이터를 불러올까요? 현재 저장된 내용이 있다면 덮어씁니다.")) return;
+        if (isSamplePreview) { closeWelcomeRevisit(); return; }
+        if (hasSavedData()) {
+            try { sessionStorage.setItem(SAMPLE_PREVIEW_KEY, '1'); }
+            catch (e) { alert("이 브라우저에서는 샘플 미리보기를 열 수 없어요."); return; }
+            location.reload(); return;
+        }
         try {
             safeStorage.setItem('savedSystemData', JSON.stringify(SAMPLE_DEMO_DATA.savedSystemData));
             safeStorage.setItem('baseItems', JSON.stringify(SAMPLE_DEMO_DATA.baseItems));
@@ -2578,6 +2615,31 @@
         safeStorage.removeItem('baseItems');
         safeStorage.removeItem('isSampleData');
         location.reload();
+    }
+    function exitSamplePreview() {
+        try { sessionStorage.removeItem(SAMPLE_PREVIEW_KEY); } catch (e) {}
+        location.reload();
+    }
+    if (isSamplePreview) {
+        safeStorage.setItem('savedSystemData', JSON.stringify(SAMPLE_DEMO_DATA.savedSystemData));
+        safeStorage.setItem('baseItems', JSON.stringify(SAMPLE_DEMO_DATA.baseItems));
+        safeStorage.removeItem('isSampleData');
+        baseItems = [...SAMPLE_DEMO_DATA.baseItems];
+    }
+
+    // 창고지기 로고 → 저장된 데이터는 그대로 두고 첫 화면 카드만 다시 보여준다
+    function openWelcomeRevisit() {
+        if (typeof deactivateHeroSearch === 'function') deactivateHeroSearch();
+        if (hasSavedData()) {
+            document.body.classList.add('welcome-revisit');
+            showWelcome(true);
+        }
+        window.scrollTo(0, 0);
+    }
+    function closeWelcomeRevisit() {
+        document.body.classList.remove('welcome-revisit');
+        if (hasSavedData()) showWelcome(false);
+        window.scrollTo(0, 0);
     }
 
     // ────────────────────────────────────────────────────────────
@@ -3168,6 +3230,7 @@
     }
     function showWelcome(show) {
         welcomeVisible = show;
+        if (!show) document.body.classList.remove('welcome-revisit');
         const card = document.getElementById('welcomeCard'); if (card) card.style.display = show ? 'block' : 'none';
         if (show) syncIndustryUI();
         const sampleBtn = document.getElementById('sampleDataBtn'); if (sampleBtn && show) sampleBtn.style.display = 'none';
@@ -3375,6 +3438,7 @@
             });
             activateHeroSearch();
             if (deleteSampleBtn && safeStorage.getItem('isSampleData') === '1') deleteSampleBtn.style.display = 'flex';
+            if (isSamplePreview) document.getElementById('samplePreviewBanner').style.display = 'flex';
         }
         else {
             if (sampleDataBtn && SAMPLE_DEMO_DATA.savedSystemData.length) sampleDataBtn.style.display = 'block';
