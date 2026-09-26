@@ -960,8 +960,8 @@
     (function () {
         try {
             const until = parseInt(localStorage.getItem('guideHiddenUntil') || '0', 10);
-            const saved = JSON.parse(localStorage.getItem('savedSystemData') || '[]');
-            if ((until && Date.now() < until) || !saved.length) {
+            const hasData = localStorage.getItem('hasSavedPhotos') === '1' || JSON.parse(localStorage.getItem('savedSystemData') || '[]').length > 0;
+            if ((until && Date.now() < until) || !hasData) {
                 document.write('<style>#guideModal{display:none !important;}</style>');
             }
         } catch (e) {}
@@ -1255,18 +1255,67 @@
     const SAMPLE_PREVIEW_KEY = 'samplePreview';
     let isSamplePreview = false;
     try { isSamplePreview = sessionStorage.getItem(SAMPLE_PREVIEW_KEY) === '1'; } catch (e) {}
+    // 사진이 든 데이터는 IndexedDB에 둔다 (localStorage는 5MB 안팎에서 막힌다).
+    // 시작할 때 한 번 메모리로 불러와서 읽기는 지금처럼 동기로, 쓰기는 뒤에서 순서대로 저장한다.
+    const PHOTO_DATA_KEY = 'savedSystemData';
+    const photoStore = {
+        db: null, cache: null, pending: Promise.resolve(), warned: false,
+        tx(mode, fn) {
+            return new Promise((resolve, reject) => {
+                const t = this.db.transaction('kv', mode), req = fn(t.objectStore('kv'));
+                t.oncomplete = () => resolve(req.result);
+                t.onerror = t.onabort = () => reject(t.error);
+            });
+        },
+        async init() {
+            try {
+                this.db = await new Promise((resolve, reject) => {
+                    const r = indexedDB.open('udigo', 1);
+                    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+                    r.onsuccess = () => resolve(r.result);
+                    r.onerror = () => reject(r.error);
+                });
+                let value = await this.tx('readonly', s => s.get(PHOTO_DATA_KEY));
+                let legacy = null; try { legacy = localStorage.getItem(PHOTO_DATA_KEY); } catch (e) {}
+                if (value == null && legacy != null) { await this.tx('readwrite', s => s.put(legacy, PHOTO_DATA_KEY)); value = legacy; }
+                if (legacy != null) try { localStorage.removeItem(PHOTO_DATA_KEY); } catch (e) {}
+                this.cache = value == null ? null : value;
+                this.markHasData(this.cache);
+                if (this.cache && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+            } catch (e) { this.db = null; }
+        },
+        write(value) {
+            this.cache = value;
+            this.markHasData(value);
+            this.pending = this.pending
+                .then(() => this.tx('readwrite', s => value == null ? s.delete(PHOTO_DATA_KEY) : s.put(value, PHOTO_DATA_KEY)))
+                .catch(() => {
+                    if (this.warned) return;
+                    this.warned = true;
+                    alert("저장 공간이 부족해 마지막 변경을 저장하지 못했어요.\n설정에서 백업 파일을 먼저 받아두세요.");
+                });
+        },
+        // 첫 화면 안내창은 페이지를 그리기 전에 판단하므로, 데이터 유무만 localStorage에 따로 표시해 둔다
+        markHasData(value) { try { localStorage.setItem('hasSavedPhotos', value && value !== '[]' ? '1' : ''); } catch (e) {} }
+    };
+    const storageReady = photoStore.init();
+    function reloadAfterSave() { photoStore.pending.then(() => location.reload()); }
+
     const safeStorage = {
         _storage: {},
         getItem(key) {
             if (isSamplePreview && key in this._storage) return this._storage[key];
+            if (key === PHOTO_DATA_KEY && photoStore.db) return photoStore.cache;
             try { return localStorage.getItem(key); } catch (e) { return this._storage[key] || null; }
         },
         setItem(key, value) {
             if (isSamplePreview) { this._storage[key] = String(value); return; }
+            if (key === PHOTO_DATA_KEY && photoStore.db) { photoStore.write(String(value)); return; }
             try { localStorage.setItem(key, value); } catch (e) { this._storage[key] = value; }
         },
         removeItem(key) {
             if (isSamplePreview) { this._storage[key] = null; return; }
+            if (key === PHOTO_DATA_KEY && photoStore.db) { photoStore.write(null); return; }
             try { localStorage.removeItem(key); } catch (e) { delete this._storage[key]; }
         }
     };
@@ -2610,7 +2659,7 @@
         const sel = document.getElementById('industrySelect'); if (sel && cur) sel.value = cur;
     }
     function exportSystemData() { const packageData = { note: "백업", savedSystemData: JSON.parse(safeStorage.getItem('savedSystemData') || "[]"), baseItems: JSON.parse(safeStorage.getItem('baseItems') || "[]") }; const downloadLink = document.createElement('a'); downloadLink.setAttribute("href", "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(packageData))); downloadLink.setAttribute("download", `매장위치지도_백업_${new Date().toISOString().slice(0,10)}.json`); downloadLink.click(); }
-    function importSystemData(input) { if (!input.files[0]) return; const reader = new FileReader(); reader.onload = function(e) { try { const imported = JSON.parse(e.target.result); if (imported.savedSystemData && imported.baseItems && confirm("백업 파일로 전체 복구하시겠습니까?")) { if (isSamplePreview) { try { sessionStorage.removeItem(SAMPLE_PREVIEW_KEY); } catch (e) {} isSamplePreview = false; } safeStorage.setItem('savedSystemData', JSON.stringify(imported.savedSystemData)); safeStorage.setItem('baseItems', JSON.stringify(imported.baseItems)); location.reload(); } } catch (err) { alert("올바른 형식이 아닙니다."); } }; reader.readAsText(input.files[0]); }
+    function importSystemData(input) { if (!input.files[0]) return; const reader = new FileReader(); reader.onload = function(e) { try { const imported = JSON.parse(e.target.result); if (imported.savedSystemData && imported.baseItems && confirm("백업 파일로 전체 복구하시겠습니까?")) { if (isSamplePreview) { try { sessionStorage.removeItem(SAMPLE_PREVIEW_KEY); } catch (e) {} isSamplePreview = false; } safeStorage.setItem('savedSystemData', JSON.stringify(imported.savedSystemData)); safeStorage.setItem('baseItems', JSON.stringify(imported.baseItems)); reloadAfterSave(); } } catch (err) { alert("올바른 형식이 아닙니다."); } }; reader.readAsText(input.files[0]); }
 
     // ────────────────────────────────────────────────────────────
     // 📦 시연용 샘플 데이터: 빈 화면에서 바로 둘러볼 수 있는 미리 채워진 예시
@@ -2630,7 +2679,7 @@
             safeStorage.setItem('baseItems', JSON.stringify(SAMPLE_DEMO_DATA.baseItems));
             safeStorage.setItem('isSampleData', '1');
         } catch (e) {}
-        location.reload();
+        reloadAfterSave();
     }
 
     function clearSampleData() {
@@ -2638,7 +2687,7 @@
         safeStorage.removeItem('savedSystemData');
         safeStorage.removeItem('baseItems');
         safeStorage.removeItem('isSampleData');
-        location.reload();
+        reloadAfterSave();
     }
     function exitSamplePreview() {
         try { sessionStorage.removeItem(SAMPLE_PREVIEW_KEY); } catch (e) {}
@@ -3424,7 +3473,8 @@
     }
 
     // 초기 실행 로직 (읽기 전용 상태로 시작)
-    window.onload = () => {
+    window.onload = async () => {
+        await storageReady;
         isEditMode = false;
 
         const btn = document.getElementById('mainModeBtn'),
