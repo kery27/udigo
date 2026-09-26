@@ -632,6 +632,17 @@
         .zl-chip.is-movable i { color: var(--text3); font-size: 13px; }
         .zl-chip.is-movable:active { background: var(--accent-soft); }
         .zl-empty { margin-top: 6px; padding-left: 32px; font-size: 12px; color: var(--text3); }
+        /* 구역 목록 2열: 칸마다 오른쪽·아래 선을 긋고, 바깥쪽 선은 -1px로 틀 밖에 숨긴다 */
+        .zl-grid { display: grid; grid-template-columns: 1fr 1fr; margin: 0 -1px -1px 0; }
+        .zl-grid .zone-item, .zl-grid .zone-item:last-child { padding: 10px 10px 12px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); min-width: 0; }
+        .zl-grid .zone-item.is-wide { grid-column: 1 / -1; }
+        .zl-grid .zl-head { gap: 4px; align-items: flex-start; }
+        .zl-grid .zl-title { gap: 6px; }
+        .zl-grid .zl-name { font-size: 13px; word-break: keep-all; }
+        .zl-grid .zl-items { padding-left: 0; gap: 4px; }
+        .zl-grid .zone-item.is-wide .zl-items, .zl-grid .zone-item.is-wide .zl-empty { padding-left: 30px; }
+        .zl-grid .zl-chip { font-size: 12px; padding: 3px 8px; max-width: 100%; }
+        .zl-grid .zl-empty { padding-left: 0; }
 
         /* 🗓 마지막 확인일 */
         .zone-checked { font-size: 11px; font-weight: 500; color: var(--text3); }
@@ -2332,21 +2343,30 @@
 
         const listContainer = document.getElementById('list-' + data.id);
         if (listContainer) {
-            listContainer.innerHTML = zones.map((z, i) => `
-                <div class="zone-item ${z === activeZone ? 'active' : ''}">
+            // 2열 격자: 물건이 많은 구역은 한 줄을 다 쓰고, 그 앞에 홀로 남는 칸도 넓혀서 빈 칸이 생기지 않게 한다
+            const isWideZone = z => z.items.length >= 5;
+            let col = 0;
+            const wide = zones.map((z, i) => {
+                const next = zones[i + 1];
+                const w = isWideZone(z) || (col === 0 && (!next || isWideZone(next)));
+                col = w ? 0 : 1 - col;
+                return w;
+            });
+            listContainer.innerHTML = `<div class="zl-grid">${zones.map((z, i) => `
+                <div class="zone-item ${z === activeZone ? 'active' : ''} ${wide[i] ? 'is-wide' : ''}">
                     <div class="zl-head">
                         <button type="button" class="zl-title" onclick="selectZone('${data.id}', ${i})">
                             <span class="zl-num">${i + 1}</span>
                             <span class="zl-name">${escapeHtml(z.name || '이름 없는 구역')}</span>
                             ${z.checkedAt ? `<span class="zone-checked ${isZoneStale(z) ? 'is-stale' : ''}">${formatCheckedAgo(z.checkedAt)} 확인</span>` : ''}
                         </button>
-                        <button type="button" onclick="editZone('${data.id}', ${i})" class="btn-xs zl-edit"><i class="ti ti-pencil"></i> 수정</button>
+                        <button type="button" onclick="editZone('${data.id}', ${i})" class="btn-xs is-icon zl-edit" title="구역 수정" aria-label="구역 수정"><i class="ti ti-pencil"></i></button>
                     </div>
                     ${z.items.length ? `<div class="zl-items">${z.items.map(it => isEditMode
                         ? `<button type="button" class="zl-chip is-movable" data-name="${escapeHtml(it.name)}" onclick="startMoveItem('${data.id}', ${i}, this.dataset.name)" title="눌러서 다른 구역으로 옮기기">${escapeHtml(it.name)}<i class="ti ti-arrows-move"></i></button>`
                         : `<span class="zl-chip">${escapeHtml(it.name)}${it.comment ? `<small>${escapeHtml(it.comment)}</small>` : ''}</span>`).join('')}</div>`
-                      : `<div class="zl-empty">지정된 물건 없음</div>`}
-                </div>`).join('');
+                      : `<div class="zl-empty">비어 있음</div>`}
+                </div>`).join('')}</div>`;
         }
     }
 
