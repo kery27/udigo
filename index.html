@@ -1747,6 +1747,11 @@
     let holdingItem = null, mousePos = { x: 0, y: 0 }, isMovingZone = false, isResizingZone = false, resizeHandle = '';
     let zoneDragOffset = { x: 0, y: 0 }, hasDragged = false, startPointerPos = { x: 0, y: 0 }, showSearchArrow = false;
     const HANDLE_SIZE = 15;
+    // 모서리 손잡이 크기는 화면 픽셀 기준: 마우스는 작게, 손가락은 넓게 (캔버스는 800px 기준이라 화면 배율로 환산)
+    let lastPointerFine = window.matchMedia('(pointer: fine)').matches;
+    function canvasScale(canvas) { const w = canvas.getBoundingClientRect().width; return w ? canvas.width / w : 1; }
+    function handleRadius(canvas) { const s = canvasScale(canvas); return lastPointerFine ? 7 * s : Math.max(HANDLE_SIZE, 18 * s); }
+    function handleDrawHalf(canvas) { return lastPointerFine ? 5 * canvasScale(canvas) : 10; }
 
     // 캔버스는 CSS 변수를 직접 못 쓰므로 현재 테마 색을 읽어 둔다 (테마를 바꾸면 다시 읽음)
     let themeColors = {};
@@ -1853,6 +1858,11 @@
 
     function toggleEditMode() {
         isEditMode = !isEditMode;
+        // 편집 모드에선 목록 칩이 커져서 위쪽 사진의 목록이 길어진다 → 보던 사진이 밀리지 않게 전환 후 제자리로
+        const line = innerHeight * 0.35;
+        const anchorSec = [...document.querySelectorAll('.image-section')].find(s => s.offsetParent && s.getBoundingClientRect().bottom > line);
+        const anchor = anchorSec && (anchorSec.querySelector('canvas') || anchorSec);
+        const anchorTop = anchor ? anchor.getBoundingClientRect().top : 0;
         const btn = document.getElementById('mainModeBtn'),
               icon = document.getElementById('modeIcon'),
               modeText = document.getElementById('modeText'),
@@ -1882,6 +1892,7 @@
             }
         });
         imageList.forEach(data => render(data));
+        if (anchor) { const moved = anchor.getBoundingClientRect().top - anchorTop; if (Math.abs(moved) > 1) window.scrollBy(0, moved); }
     }
 
     // ────────────────────────────────────────────────────────────
@@ -2159,9 +2170,13 @@
             if (!isEditMode) return;
             pendingHistoryState = cloneZonesState();
 
-            for (let z of data.zones) {
+            // 크기 조절은 손잡이가 그려진 "선택한 구역"에서만: 옆 구역 모서리가 대신 잡히지 않게
+            lastPointerFine = e.pointerType === 'mouse';
+            const z = activeData === data && data.zones.includes(activeZone) ? activeZone : null;
+            if (z) {
+                const hit = handleRadius(canvas);
                 const corners = { tl: { x: z.x, y: z.y }, tr: { x: z.x + z.w, y: z.y }, bl: { x: z.x, y: z.y + z.h }, br: { x: z.x + z.w, y: z.y + z.h } };
-                for (let handle in corners) { const pt = corners[handle]; if (x >= pt.x - HANDLE_SIZE && x <= pt.x + HANDLE_SIZE && y >= pt.y - HANDLE_SIZE && y <= pt.y + HANDLE_SIZE) { activeZone = z; activeData = data; isResizingZone = true; resizeHandle = handle; render(data); return; } }
+                for (let handle in corners) { const pt = corners[handle]; if (Math.abs(x - pt.x) <= hit && Math.abs(y - pt.y) <= hit) { isResizingZone = true; resizeHandle = handle; render(data); return; } }
             }
             const clickedZone = data.zones.find(z => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h);
             if (clickedZone) { activeZone = clickedZone; activeData = data; isMovingZone = true; zoneDragOffset = { x: x - clickedZone.x, y: y - clickedZone.y }; render(data); return; }
@@ -2453,7 +2468,7 @@
                 ctx.font = 'bold ' + Math.round(bubbleFontSize * 1.1) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.strokeStyle = '#1a1a18'; ctx.lineWidth = 3; ctx.strokeText(z.name, z.x + z.w / 2, z.y + z.h / 2); ctx.fillStyle = '#ffffff'; ctx.fillText(z.name, z.x + z.w / 2, z.y + z.h / 2);
             }
-            if (isEditMode && z === activeZone) { ctx.fillStyle = 'white'; ctx.strokeStyle = '#c44444'; ctx.lineWidth = 2; const corners = [{ x: z.x, y: z.y }, { x: z.x + z.w, y: z.y }, { x: z.x, y: z.y + z.h }, { x: z.x + z.w, y: z.y + z.h }]; corners.forEach(c => { ctx.fillRect(c.x - 10, c.y - 10, 20, 20); ctx.strokeRect(c.x - 10, c.y - 10, 20, 20); }); }
+            if (isEditMode && z === activeZone) { ctx.fillStyle = 'white'; ctx.strokeStyle = '#c44444'; ctx.lineWidth = 2; const corners = [{ x: z.x, y: z.y }, { x: z.x + z.w, y: z.y }, { x: z.x, y: z.y + z.h }, { x: z.x + z.w, y: z.y + z.h }]; const hh = handleDrawHalf(canvas); corners.forEach(c => { ctx.fillRect(c.x - hh, c.y - hh, hh * 2, hh * 2); ctx.strokeRect(c.x - hh, c.y - hh, hh * 2, hh * 2); }); }
             if (isEditMode && showDetails && z.items.length > 0) { drawSpeechBubble(ctx, z.x, (z.y < 60 ? z.y + z.h + 5 : z.y), z.items, z.y < 60, z); } else { z.bubbleBox = null; }
             if (z === activeZone && showSearchArrow) { ctx.fillStyle = '#c44444'; ctx.font = 'bold 32px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('▼', z.x + z.w / 2, z.y - 20 - bounce); }
         });
