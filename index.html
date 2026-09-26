@@ -280,6 +280,8 @@
 
         *{ box-sizing: border-box; margin: 0; padding: 0; }
 
+        /* 구역 팝업이 페이지 스크롤을 잠가 스크롤바가 사라져도 폭이 그대로이게 스크롤바 자리를 항상 비워 둔다 */
+        html { scrollbar-gutter: stable; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
             background: var(--bg); color: var(--text);
@@ -444,7 +446,8 @@
         .photo-thumb[aria-selected="true"] { border-color: var(--accent-text); color: var(--text); box-shadow: var(--shadow-sm); }
         .photo-thumb[aria-selected="true"] span { color: var(--accent-text); }
         .zl-summary { margin-left: 6px; font-weight: 400; color: var(--text2); }
-        canvas { border: 1px solid var(--border); border-radius: var(--radius-sm); max-width: 100%; display: block; margin: 10px auto; cursor: crosshair; transition: border-color 0.3s; }
+        canvas { border: 1px solid var(--border); border-radius: var(--radius-sm); max-width: 100%; display: block; margin: 10px auto; transition: border-color 0.3s; }
+        body.pick-mode canvas { cursor: pointer; }
 
         .zone-item { padding: 12px 14px; border-bottom: 1px solid var(--border); transition: background 0.2s; background: var(--card); }
         .zone-item:last-child { border-bottom: none; }
@@ -1751,6 +1754,18 @@
     let lastPointerFine = window.matchMedia('(pointer: fine)').matches;
     function canvasScale(canvas) { const w = canvas.getBoundingClientRect().width; return w ? canvas.width / w : 1; }
     function handleRadius(canvas) { const s = canvasScale(canvas); return lastPointerFine ? 7 * s : Math.max(HANDLE_SIZE, 18 * s); }
+    // 마우스를 올린 곳에서 할 수 있는 동작을 커서로 보여준다
+    function hoverCursor(data, canvas, x, y) {
+        const inZone = data.zones.some(z => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h);
+        if (!isEditMode) return inZone ? 'pointer' : 'default';
+        const z = activeData === data && data.zones.includes(activeZone) ? activeZone : null;
+        if (z) {
+            const hit = handleRadius(canvas), near = (px, py) => Math.abs(x - px) <= hit && Math.abs(y - py) <= hit;
+            if (near(z.x, z.y) || near(z.x + z.w, z.y + z.h)) return 'nwse-resize';
+            if (near(z.x + z.w, z.y) || near(z.x, z.y + z.h)) return 'nesw-resize';
+        }
+        return inZone ? 'move' : 'crosshair';
+    }
     function handleDrawHalf(canvas) { return lastPointerFine ? 5 * canvasScale(canvas) : 10; }
 
     // 캔버스는 CSS 변수를 직접 못 쓰므로 현재 테마 색을 읽어 둔다 (테마를 바꾸면 다시 읽음)
@@ -2187,6 +2202,7 @@
         canvas.addEventListener('pointermove', (e) => {
             const rect = canvas.getBoundingClientRect(); const x = (e.clientX - rect.left) * (canvas.width / rect.width); const y = (e.clientY - rect.top) * (canvas.height / rect.height);
             if (Math.abs(x - startPointerPos.x) > 5 || Math.abs(y - startPointerPos.y) > 5) hasDragged = true;
+            if (e.pointerType === 'mouse' && !isDrawingNewZone && !holdingItem && !isMovingZone && !isResizingZone) canvas.style.cursor = hoverCursor(data, canvas, x, y);
 
             if (isDrawingNewZone) { currentDrawPos = { x, y }; render(data); }
             else if (holdingItem) { mousePos = { x, y }; render(data); }
